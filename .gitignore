@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.env
+node_modules/
+dist/
+*.egg-info/
+.superpowers/
+ml/artifacts/*.joblib
+playwright-report/
+test-results/
+*.log
+.worktrees/

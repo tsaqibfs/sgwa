@@ -1,0 +1,13 @@
+{
+  "model_version": "tfidf-logreg-1d66b80a2b02",
+  "classes": [
+    "dukcapil",
+    "kesehatan",
+    "pajak",
+    "perizinan"
+  ],
+  "dataset_hash": "1d66b80a2b02d14c6713ac193ce5b058d21cb4b46d4c81d5375b3ffff255e47c",
+  "model_hash": "ea2fc46450a0b8dbffdc8e7052453626a852003b3980869dc3c44cd43883bae0",
+  "synthetic": true,
+  "threshold": 0.6
+}
