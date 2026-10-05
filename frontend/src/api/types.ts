@@ -1,0 +1,9 @@
+export type Role='citizen'|'staff'|'admin';
+export type Status='pending'|'processing'|'escalated'|'approved'|'rejected';
+export type User={id:number;name:string;email:string;role:Role;agency_id:number|null;active:boolean};
+export type Agency={id:number;code:string;name:string;description:string;active:boolean};
+export type Classification={predicted_agency_code:string;probabilities:Record<string,number>;confidence:number;needs_review:boolean;model_version:string};
+export type RequestItem={id:number;reference:string;citizen_id:number;title:string;description:string;assigned_agency_id:number|null;agency_name:string|null;status:Status;version:number;created_at:string;updated_at:string;classification?:Classification|null;events?:{id:number;to_status:Status;note:string;created_at:string}[]};
+export type RequestList={items:RequestItem[];total:number;page:number;page_size:number};
+export type DashboardData={total:number;by_status:Partial<Record<Status,number>>;by_agency:{agency_id:number|null;name:string;count:number}[]};
+export type Draft={title:string;description:string};

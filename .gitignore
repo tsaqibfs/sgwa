@@ -11,3 +11,7 @@ playwright-report/
 test-results/
 *.log
 .worktrees/
+*.tsbuildinfo
+coverage/
+.coverage
+htmlcov/
