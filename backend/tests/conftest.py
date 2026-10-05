@@ -1,6 +1,7 @@
 import importlib.util
 import os
 import pytest
+from backend.tests.safety import validated_test_url
 
 
 @pytest.fixture
@@ -13,7 +14,7 @@ def appdb():
     url=os.environ.get('TEST_DATABASE_URL','')
     if not url:
         pytest.skip('MySQL test connection not configured (TEST_DATABASE_URL)')
-    assert url.rsplit('/',1)[-1].startswith('sgwa_test'), 'Use a dedicated sgwa_test database'
+    url=validated_test_url(url)
     os.environ['DATABASE_URL']=url
     os.environ['JWT_SECRET']='test-only-secret-of-at-least-32-characters-long'
     os.environ['TRUSTED_ORIGINS']='["http://testserver"]'

@@ -2,6 +2,7 @@ import importlib.util
 import os
 import subprocess
 from pathlib import Path
+from backend.tests.safety import validated_test_url
 
 
 def test_schema_supports_new_agency():
@@ -13,7 +14,7 @@ def test_schema_supports_new_agency():
     import pytest
     if not os.environ.get('TEST_DATABASE_URL'):
         pytest.skip('MySQL test connection not configured')
-    engine = create_engine(os.environ['TEST_DATABASE_URL'])
+    engine = create_engine(validated_test_url(os.environ['TEST_DATABASE_URL']))
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     with Session(engine) as db:
@@ -34,8 +35,7 @@ def test_initial_migration_upgrade_downgrade():
         import pytest
         pytest.skip('MySQL test connection not configured')
     from sqlalchemy import create_engine, inspect, text
-    env = {**os.environ, 'DATABASE_URL': os.environ['TEST_DATABASE_URL']}
-    assert env['DATABASE_URL'].rsplit('/',1)[-1].startswith('sgwa_test')
+    env = {**os.environ, 'DATABASE_URL': validated_test_url(os.environ['TEST_DATABASE_URL'])}
     # ORM tests drop domain tables, so remove their stale migration marker too.
     with create_engine(env['DATABASE_URL']).begin() as connection:
         connection.execute(text('DROP TABLE IF EXISTS alembic_version'))

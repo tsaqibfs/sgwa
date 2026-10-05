@@ -33,8 +33,9 @@ def submit_request(session: Session,actor: User,payload: RequestCreate,classifie
         prediction=classifier.predict(payload.title+' '+payload.description)
     except ModelUnavailable:
         raise HTTPException(503,'Model belum tersedia.')
-    agency=session.scalar(select(Agency).where(Agency.code==prediction.agency_code,Agency.active.is_(True)))
-    review=prediction.confidence<.60 or not prediction.known_features or agency is None
+    # Hold the current agency state until the routing transaction commits.
+    agency=session.scalar(select(Agency).where(Agency.code==prediction.agency_code).with_for_update())
+    review=prediction.confidence<.60 or not prediction.known_features or agency is None or not agency.active
     item=Request(reference='SGWA-'+uuid.uuid4().hex[:16].upper(),citizen_id=actor.id,title=payload.title,description=payload.description,assigned_agency_id=None if review else agency.id,status='escalated' if review else 'pending')
     session.add(item);session.flush()
     session.add(ClassificationResult(request_id=item.id,predicted_agency_code=prediction.agency_code,probabilities=prediction.probabilities,confidence=prediction.confidence,needs_review=review,model_version=prediction.model_version))

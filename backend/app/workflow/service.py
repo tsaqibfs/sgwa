@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from sqlalchemy import update
+from sqlalchemy import update,select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 from backend.app.models import Request,RequestEvent,User,Agency,utcnow
@@ -47,7 +47,7 @@ def reroute_request(session: Session,actor: User,request_id: int,expected_versio
     item=get_request(session,actor,request_id)
     if item.version!=expected_version or item.status!='escalated':
         raise HTTPException(409,'Hanya kasus eskalasi terbaru dapat dialihkan.')
-    agency=session.get(Agency,agency_id)
+    agency=session.scalar(select(Agency).where(Agency.id==agency_id).with_for_update())
     if not agency or not agency.active or not note.strip():
         raise HTTPException(422,'Pilih dinas aktif dan isi alasan pengalihan.')
     return apply_change(session,actor,item,expected_version,'pending',note,agency_id,'rerouted')

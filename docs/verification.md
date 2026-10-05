@@ -6,9 +6,9 @@ Tanggal: 5 Oktober 2026. Hasil ini berlaku pada environment lokal pengembangan, 
 
 | Pemeriksaan | Hasil |
 | --- | --- |
-| Backend / ML (`scripts/test_backend.py`) | 33 tes lulus, tidak ada skipped ketika TEST_DATABASE_URL diaktifkan |
+| Backend / ML (`scripts/test_backend.py`) | 36 tes lulus, tidak ada skipped ketika TEST_DATABASE_URL diaktifkan |
 | Frontend unit (`npm --prefix frontend test -- --run`) | 4 tes lulus |
-| Browser Edge (`npm --prefix frontend run e2e`) | 4 skenario lulus |
+| Browser Edge (`npm --prefix frontend run e2e`) | 5 skenario lulus |
 | TypeScript dan Vite build | Berhasil |
 | Dependency Python (`pip check`) | Tidak ada dependency rusak |
 | Audit npm setelah pembaruan Vitest 4.1.11 | 0 kerentanan |
@@ -17,6 +17,18 @@ Tanggal: 5 Oktober 2026. Hasil ini berlaku pada environment lokal pengembangan, 
 Backend mencakup isolasi warga/staf, keamanan sesi dan CSRF, rollback saat pencatatan audit gagal, boundary confidence 0,60, fitur teks tidak dikenal, model tidak tersedia, dinas nonaktif, penambahan dinas, seed idempotent, migrasi upgrade/downgrade, serta perubahan bersamaan dengan tepat satu update berhasil.
 
 Browser mencakup warga -> staf -> warga, admin membuat dinas dan reroute eskalasi, navigasi keyboard, viewport 375/768/1366 tanpa overflow halaman, serta draft yang tetap ada saat login ulang dalam tab yang sama. Screenshots diperiksa untuk layout desktop/mobile dan beranda.
+
+## Review akhir dan perbaikan
+
+Review independen menemukan tiga masalah penting. Ketiganya direproduksi dengan tes yang gagal sebelum implementasi perbaikan, kemudian seluruh suite di atas lulus:
+
+- Semua setup destruktif tes sekarang memakai validator URL yang sama sebelum koneksi. Hanya backend MySQL dan nama `sgwa_test` dengan karakter alfanumerik/underscore diterima; URL aplikasi, SQLite, dan nama berisi encoded slash ditolak.
+- Catatan keputusan dan target pengalihan disimpan dalam memory provider berdasarkan pengguna dan permohonan. Login ulang pada tab yang sama memulihkan draft; keputusan akhir tetap meminta konfirmasi baru. Draft dihapus setelah tindakan berhasil atau logout eksplisit. Tes browser membuktikan pemulihan catatan staf setelah sesi habis.
+- Submit dan reroute membaca dinas dengan `SELECT FOR UPDATE` sampai transaksi selesai. Dua tes koneksi bersamaan membuktikan perubahan status dinas menunggu transaksi routing.
+
+Temuan yang tidak dijadikan perubahan: pengujian Oracle MySQL tetap dicatat sebagai gap environment; beban/keamanan produksi dan data ML nyata berada di luar scope demo. Teks tanpa fitur dikenal tetap dieskalasi walaupun probabilitas tertinggi besar. Persistensi setelah reload penuh tidak disyaratkan dan tetap tidak didukung. Format kode padat dan komponen auth bersama adalah pertimbangan pemeliharaan; konsekuensinya refactor mungkin diperlukan saat scope bertambah. Tidak ada temuan penting yang dibiarkan tanpa perbaikan.
+
+Hasil akhir disimpan pada branch lokal yang sudah ada. Repository baru belum memiliki remote atau branch tujuan integrasi, sehingga tidak ada push/merge/PR.
 
 ## Engine database yang benar-benar diuji
 

@@ -46,3 +46,16 @@ test('draft bertahan ketika sesi berakhir dan warga login ulang',async({page,con
  await expect(page).toHaveURL(/\/login$/);await login(page,'warga@demo.sgwa.id');
  await expect(page.getByLabel('Judul permohonan')).toHaveValue('Draft KTP belum dikirim');
 });
+
+test('catatan keputusan staf bertahan saat sesi berakhir',async({page,context})=>{
+ await login(page,'warga@demo.sgwa.id');await page.goto('/app/requests/new');
+ const title='KTP review catatan '+Date.now();
+ await page.getByLabel('Judul permohonan').fill(title);await page.getByLabel('Ceritakan kebutuhan Anda').fill('Saya ingin mengurus KTP elektronik yang hilang dan kartu keluarga di Dukcapil.');
+ await page.getByRole('button',{name:'Kirim permohonan'}).click();await expect(page).toHaveURL(/requests\/\d+$/);const detail=page.url();
+ await logout(page);await login(page,'dukcapil@demo.sgwa.id');await page.goto(detail);await page.getByRole('button',{name:'Mulai proses'}).click();
+ const note='Catatan panjang hasil verifikasi dokumen warga yang harus tetap ada setelah login ulang.';
+ await page.getByLabel('Catatan keputusan').fill(note);await page.getByRole('button',{name:'Disetujui',exact:true}).click();
+ await context.clearCookies();await page.getByRole('button',{name:'Konfirmasi',exact:true}).click();await expect(page).toHaveURL(/\/login$/);
+ await login(page,'dukcapil@demo.sgwa.id');await expect(page.getByLabel('Catatan keputusan')).toHaveValue(note);
+ await expect(page.getByRole('dialog')).not.toBeVisible();
+});
