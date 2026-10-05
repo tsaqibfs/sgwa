@@ -8,7 +8,7 @@ Tanggal: 5 Oktober 2026. Hasil ini berlaku pada environment lokal pengembangan, 
 | --- | --- |
 | Backend / ML (`scripts/test_backend.py`) | 36 tes lulus, tidak ada skipped ketika TEST_DATABASE_URL diaktifkan |
 | Frontend unit (`npm --prefix frontend test -- --run`) | 4 tes lulus |
-| Browser Edge (`npm --prefix frontend run e2e`) | 5 skenario lulus |
+| Browser Edge (`npm --prefix frontend run e2e`) | 6 skenario lulus setelah redesign |
 | TypeScript dan Vite build | Berhasil |
 | Dependency Python (`pip check`) | Tidak ada dependency rusak |
 | Audit npm setelah pembaruan Vitest 4.1.11 | 0 kerentanan |
@@ -17,6 +17,8 @@ Tanggal: 5 Oktober 2026. Hasil ini berlaku pada environment lokal pengembangan, 
 Backend mencakup isolasi warga/staf, keamanan sesi dan CSRF, rollback saat pencatatan audit gagal, boundary confidence 0,60, fitur teks tidak dikenal, model tidak tersedia, dinas nonaktif, penambahan dinas, seed idempotent, migrasi upgrade/downgrade, serta perubahan bersamaan dengan tepat satu update berhasil.
 
 Browser mencakup warga -> staf -> warga, admin membuat dinas dan reroute eskalasi, navigasi keyboard, viewport 375/768/1366 tanpa overflow halaman, serta draft yang tetap ada saat login ulang dalam tab yang sama. Screenshots diperiksa untuk layout desktop/mobile dan beranda.
+
+Redesign 5 Oktober 2026 juga memverifikasi tombol Masuk mobile, tautan lompat ke konten yang memindahkan fokus, dan halaman 404. Audit dan perubahan visual dicatat dalam [redesign.md](redesign.md).
 
 ## Review akhir dan perbaikan
 

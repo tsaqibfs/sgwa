@@ -2,6 +2,14 @@ import {test,expect,type Page} from '@playwright/test';
 import {readFileSync} from 'node:fs';
 const password=readFileSync('../.env','utf8').split(/\r?\n/).find(line=>line.startsWith('DEMO_PASSWORD='))?.slice('DEMO_PASSWORD='.length);
 if(!password)throw new Error('DEMO_PASSWORD is required in .env');
+test('navigasi keyboard langsung menuju konten dan halaman tidak ditemukan',async({page})=>{
+ await page.setViewportSize({width:375,height:900});await page.goto('/');
+ await expect(page.getByRole('link',{name:'Masuk',exact:true})).toBeVisible();await page.keyboard.press('Tab');
+ await expect(page.getByRole('link',{name:'Lompat ke konten'})).toBeFocused();
+ await page.keyboard.press('Enter');await expect(page.locator('main')).toBeFocused();
+ await page.goto('/halaman-tidak-ada');await expect(page.getByRole('heading',{name:'Halaman tidak ditemukan'})).toBeVisible();
+ await page.getByRole('link',{name:'Kembali ke beranda'}).click();await expect(page).toHaveURL(/\/$/);
+});
 async function login(page:Page,email:string){if(!page.url().endsWith('/login'))await page.goto('/login');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password!);await page.getByRole('button',{name:'Masuk',exact:true}).click();await expect(page).toHaveURL(/\/app(?:\/|$)/)}
 async function logout(page:Page){await page.getByRole('button',{name:'Keluar',exact:true}).click();await expect(page).toHaveURL(/\/login$/)}
 
@@ -35,7 +43,12 @@ test('responsive layouts keyboard and screenshots',async({page})=>{
   await page.screenshot({path:`test-results/dashboard-${width}.png`,fullPage:true});
  }
  await page.goto('/app/requests/new');await page.getByLabel('Judul permohonan').focus();await page.keyboard.press('Tab');await expect(page.getByLabel('Ceritakan kebutuhan Anda')).toBeFocused();
- await page.goto('/');await page.setViewportSize({width:1366,height:900});await page.screenshot({path:'test-results/home.png',fullPage:true});
+ for(const width of [375,768,1366]){
+  await page.setViewportSize({width,height:900});await page.goto('/');await expect(page.getByRole('heading',{name:/Kebutuhan Anda/})).toBeVisible();
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+  await page.screenshot({path:`test-results/home-${width}.png`,fullPage:true});
+ }
+ await page.goto('/app/requests/new');await page.screenshot({path:'test-results/request-form.png',fullPage:true});
 });
 
 test('draft bertahan ketika sesi berakhir dan warga login ulang',async({page,context})=>{
