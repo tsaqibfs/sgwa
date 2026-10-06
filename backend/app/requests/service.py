@@ -1,4 +1,5 @@
 import uuid
+from datetime import timedelta
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -6,6 +7,7 @@ from backend.app.models import Request,Agency,ClassificationResult,RequestEvent,
 from backend.app.audit.service import record
 from backend.app.ml.classifier import Classifier,ModelUnavailable
 from backend.app.requests.schemas import RequestCreate
+from backend.app.workflow.routing import resolve_route
 
 
 def scoped_query(actor: User):
@@ -34,10 +36,14 @@ def submit_request(session: Session,actor: User,payload: RequestCreate,classifie
     except ModelUnavailable:
         raise HTTPException(503,'Model belum tersedia.')
     # Hold the current agency state until the routing transaction commits.
-    agency=session.scalar(select(Agency).where(Agency.code==prediction.agency_code).with_for_update())
-    review=prediction.confidence<.60 or not prediction.known_features or agency is None or not agency.active
+    route=resolve_route(session,prediction.agency_code)
+    agency=route[0] if route else None
+    review=prediction.confidence<.60 or not prediction.known_features or not route
     item=Request(reference='SGWA-'+uuid.uuid4().hex[:16].upper(),citizen_id=actor.id,title=payload.title,description=payload.description,assigned_agency_id=None if review else agency.id,status='escalated' if review else 'pending')
     session.add(item);session.flush()
+    if not review:
+        now=utcnow()
+        session.add_all([RequestWorkflow(request_id=item.id,agency_id=a.id,due_at=now+timedelta(days=a.sla_days)) for a in route])
     session.add(ClassificationResult(request_id=item.id,predicted_agency_code=prediction.agency_code,probabilities=prediction.probabilities,confidence=prediction.confidence,needs_review=review,model_version=prediction.model_version))
     session.add(RequestEvent(request_id=item.id,actor_id=actor.id,event_type='submitted',from_status=None,to_status=item.status,note='Perlu pemeriksaan manual.' if review else 'Diteruskan berdasarkan klasifikasi ML.'))
     record(session,actor.id,'request.submitted','request',item.id,{'status':item.status,'assigned_agency_id':item.assigned_agency_id})

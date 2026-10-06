@@ -13,6 +13,7 @@ from backend.app.requests.routes import router as request_router
 from backend.app.agencies.routes import router as agency_router
 from backend.app.dashboard.routes import router as dashboard_router
 from backend.app.ml.routes import router as ml_router
+from backend.app.workflow.routes import router as workflow_router
 
 
 @asynccontextmanager
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
     application.include_router(agency_router,prefix='/api/v1')
     application.include_router(dashboard_router,prefix='/api/v1')
     application.include_router(ml_router,prefix='/api/v1')
+    application.include_router(workflow_router,prefix='/api/v1')
 
     @application.get('/api/v1/health',tags=['Sistem'])
     def health():
