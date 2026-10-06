@@ -7,6 +7,8 @@ from backend.app.auth.dependencies import get_current_user,require_role
 from backend.app.requests.schemas import RequestCreate,StatusChange,Reroute
 from backend.app.requests.service import scoped_query,get_request,submit_request,serialize
 from backend.app.workflow.service import transition_request,reroute_request
+from backend.app.workflow.schemas import TaskDecision,ReviewRoute
+from backend.app.workflow.tasks import decide_task,review_route
 
 router=APIRouter(prefix='/requests',tags=['Permohonan'])
 
@@ -37,3 +39,13 @@ def change(request_id: int,payload: StatusChange,actor: User=Depends(require_rol
 @router.post('/{request_id}/reroute')
 def reroute(request_id: int,payload: Reroute,actor: User=Depends(require_role('admin')),db: Session=Depends(get_session)):
     return serialize(db,reroute_request(db,actor,request_id,payload.version,payload.agency_id,payload.note),True)
+
+
+@router.patch('/{request_id}/tasks/{task_id}')
+def decide(request_id:int,task_id:int,payload:TaskDecision,actor:User=Depends(require_role('staff')),db:Session=Depends(get_session)):
+    return serialize(db,decide_task(db,actor,request_id,task_id,payload.request_version,payload.task_version,payload.status,payload.note),True)
+
+
+@router.post('/{request_id}/review-route')
+def review(request_id:int,payload:ReviewRoute,actor:User=Depends(require_role('admin')),db:Session=Depends(get_session)):
+    return serialize(db,review_route(db,actor,request_id,payload.version,payload.agency_ids,payload.note),True)

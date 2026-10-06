@@ -15,7 +15,7 @@ def scoped_query(actor: User):
     if actor.role=='citizen':
         return query.where(Request.citizen_id==actor.id)
     if actor.role=='staff':
-        return query.where(Request.assigned_agency_id==actor.agency_id) if actor.agency_id else query.where(False)
+        return query.where(select(RequestWorkflow.id).where(RequestWorkflow.request_id==Request.id,RequestWorkflow.agency_id==actor.agency_id).exists()) if actor.agency_id else query.where(False)
     if actor.role=='admin':
         return query
     return query.where(False)

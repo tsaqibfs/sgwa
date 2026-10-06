@@ -15,39 +15,18 @@ def validate_transition(role: str,old: str,new: str,note: str):
         raise HTTPException(409,'Perubahan status tidak diizinkan.')
 
 
-def apply_change(session: Session,actor: User,item: Request,expected_version: int,new: str,note: str,agency_id: int|None,event_type: str):
-    old=item.status
-    old_agency=item.assigned_agency_id
-    try:
-        result=session.execute(update(Request).where(Request.id==item.id,Request.version==expected_version).values(status=new,assigned_agency_id=agency_id,version=Request.version+1,updated_at=utcnow()).execution_options(synchronize_session=False))
-    except OperationalError as exc:
-        if exc.orig.args[0] in (1020,1205,1213):
-            session.rollback()
-            raise HTTPException(409,'Perubahan bersamaan terdeteksi. Muat ulang permohonan.') from exc
-        raise
-    if result.rowcount!=1:
-        session.rollback();raise HTTPException(409,'Permohonan sudah diperbarui. Muat ulang sebelum melanjutkan.')
-    session.add(RequestEvent(request_id=item.id,actor_id=actor.id,event_type=event_type,from_status=old,to_status=new,note=note.strip()))
-    record(session,actor.id,'request.'+event_type,'request',item.id,{'from_status':old,'to_status':new,'from_agency_id':old_agency,'to_agency_id':agency_id})
-    session.commit();session.refresh(item)
-    return item
-
-
 def transition_request(session: Session,actor: User,request_id: int,expected_version: int,status: str,note: str) -> Request:
-    item=get_request(session,actor,request_id)
-    if item.version!=expected_version:
-        raise HTTPException(409,'Permohonan sudah diperbarui. Muat ulang sebelum melanjutkan.')
+    from backend.app.workflow.tasks import lock_request,decide_task,finish
+    from backend.app.models import RequestWorkflow
+    if actor.role=='staff':
+        task=session.scalar(select(RequestWorkflow).where(RequestWorkflow.request_id==request_id,RequestWorkflow.agency_id==actor.agency_id))
+        if not task:raise HTTPException(404,'Tugas dinas tidak ditemukan.')
+        return decide_task(session,actor,request_id,task.id,expected_version,task.version,status,note)
+    item=lock_request(session,actor,request_id,expected_version)
     validate_transition(actor.role,item.status,status,note)
-    return apply_change(session,actor,item,expected_version,status,note,item.assigned_agency_id,'status_changed')
+    return finish(session,actor.id,item,status,note,'status_changed',{'human_review':True})
 
 
 def reroute_request(session: Session,actor: User,request_id: int,expected_version: int,agency_id: int,note: str) -> Request:
-    if actor.role!='admin':
-        raise HTTPException(403,'Hanya admin dapat mengalihkan permohonan.')
-    item=get_request(session,actor,request_id)
-    if item.version!=expected_version or item.status!='escalated':
-        raise HTTPException(409,'Hanya kasus eskalasi terbaru dapat dialihkan.')
-    agency=session.scalar(select(Agency).where(Agency.id==agency_id).with_for_update())
-    if not agency or not agency.active or not note.strip():
-        raise HTTPException(422,'Pilih dinas aktif dan isi alasan pengalihan.')
-    return apply_change(session,actor,item,expected_version,'pending',note,agency_id,'rerouted')
+    from backend.app.workflow.tasks import review_route
+    return review_route(session,actor,request_id,expected_version,[agency_id],note)
