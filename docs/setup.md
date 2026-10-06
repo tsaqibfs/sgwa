@@ -17,7 +17,7 @@ Lockfile Python berasal dari Windows/Python 3.12. Untuk Python/OS lain gunakan `
 
 ## Database: EnvKit
 
-EnvKit menyatukan MySQL/MariaDB pada modul layanan, tetapi keduanya engine berbeda. Pilih Oracle MySQL 8.4 jika harus memenuhi ketentuan MySQL secara harfiah. Aktifkan layanan lalu verifikasi server lewat `SELECT VERSION()` menggunakan client database.
+EnvKit menyatukan MySQL/MariaDB pada modul layanan, tetapi keduanya engine berbeda. Pilih Oracle MySQL 8.4 jika harus memenuhi ketentuan MySQL secara harfiah. Aktifkan layanan lalu verifikasi server lewat `SELECT VERSION(), @@version_comment` menggunakan client database. Server lokal pada 6 Oktober 2026 telah diverifikasi Oracle MySQL Community 9.7.2.
 
 Koneksi umum: `127.0.0.1:3306`. Jika menggunakan instalasi lokal EnvKit dengan root tanpa password dan belum memiliki database/user `sgwa_demo`, perintah berikut membuat database aplikasi dan database test tersendiri, akun terbatas pada keduanya, serta `.env` dengan secret acak:
 
@@ -102,3 +102,13 @@ Test backend memuat TEST_DATABASE_URL dari `.env` tanpa mencetak kredensial. Tan
 | 403 origin/CSRF | Buka origin yang diizinkan, muat ulang tab, jangan POST langsung tanpa bootstrap CSRF |
 | 409 saat keputusan | Permohonan telah berubah; muat ulang, baca perubahan, putuskan ulang |
 | API health tersedia tetapi fitur gagal | Health hanya liveness API; tetap periksa database/migrasi/model |
+
+## Worker SLA (terminal ketiga)
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.app.sla.worker
+```
+
+Worker memeriksa tugas setiap 60 detik. Untuk satu pemeriksaan gunakan `--once`. Tenggat dihitung dalam hari kalender UTC sejak tugas dibuat; UI menampilkan WIB. Perubahan SLA dinas berlaku untuk tugas baru. Backup aplikasi sebelum forward migration; jangan jalankan downgrade/drop_all pada database aplikasi.
+
+Untuk menghapus fixture Pendidikan yang dibuat tes browser: `python -m scripts.cleanup_education_dummy`. Script memvalidasi kode/nama dan pengajuan fixture; hubungan dengan data lain membatalkan transaksi. Riwayat audit dipertahankan.

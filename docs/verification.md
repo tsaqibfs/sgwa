@@ -49,3 +49,4 @@ Konfigurasi **Oracle MySQL 8.4** ada di `compose.yaml`, tetapi belum dijalankan 
 ## Batas bukti
 
 Tidak dilakukan load test 1000 concurrent requests, penilaian keamanan produksi, integrasi pemerintah nyata, atau evaluasi ML pada data warga nyata. Draft hanya bertahan dalam memory tab; reload penuh menutup sesi aplikasi dan menghapus draft. Log test menampilkan peringatan deprecation adapter TestClient upstream; seluruh assertions tetap lulus.
+`nVerifikasi terbaru Oracle MySQL dan tahap pertama: [phase-one-verification.md](phase-one-verification.md). Catatan sebelumnya adalah riwayat pengujian, bukan status engine saat ini.

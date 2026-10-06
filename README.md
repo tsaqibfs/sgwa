@@ -4,7 +4,7 @@ Web proyek akhir semester dengan klasifikasi permohonan Indonesia menggunakan ML
 
 ## Stack
 
-Python 3.11+ / FastAPI / SQLAlchemy / Alembic, React + TypeScript + Vite, MySQL 8.4, TF-IDF + Logistic Regression. UI memakai Radix Themes dan Phosphor. Tidak membutuhkan API AI berbayar.
+Python 3.11+ / FastAPI / SQLAlchemy / Alembic, React + TypeScript + Vite, MySQL (referensi 8.4; lokal teruji 9.7.2), TF-IDF + Logistic Regression. UI memakai Radix Themes dan Phosphor. Tidak membutuhkan API AI berbayar.
 
 ## Jalankan di Windows
 
@@ -58,10 +58,10 @@ Backend integration tests hanya memakai database dengan nama berawalan `sgwa_tes
 
 ## Menambah dinas
 
-Admin dapat menambah dinas dan menugaskan staf tanpa mengubah kode/skema. Dinas baru langsung menerima pengalihan manual. Untuk klasifikasi otomatis: tambah minimal 50 contoh dengan label berupa kode dinas dan minimal lima kelompok skenario, training ulang, lalu restart backend. Prediksi historis tetap disimpan.
+Admin dapat menambah dinas dan menugaskan staf tanpa mengubah kode/skema. Dinas baru langsung menerima pengalihan manual dan dapat ditambahkan sebagai tujuan aturan routing. Untuk klasifikasi otomatis: tambah minimal 50 contoh dengan label berupa kode dinas dan minimal lima kelompok skenario, training ulang, lalu restart backend. Prediksi historis tetap disimpan.
 
 ## Batas demonstrasi
 
-Dataset awal berisi 200 teks sintetis dari 40 kelompok; evaluasi bukan bukti akurasi pada data warga nyata. Skor model bukan kepastian layanan. Versi ini merutekan satu dinas, tanpa pembayaran, tanda tangan, notifikasi eksternal, atau integrasi pemerintah nyata.
+Dataset awal berisi 200 teks sintetis dari 40 kelompok; evaluasi bukan bukti akurasi pada data warga nyata. Skor model bukan kepastian layanan. Tahap pertama mendukung tugas paralel lintas dinas, SLA hari kalender, pembaruan langsung SSE dan audit admin, tanpa pembayaran, tanda tangan, notifikasi eksternal, atau integrasi pemerintah nyata.
 
-Server lokal EnvKit yang tersedia saat pengembangan teridentifikasi sebagai MariaDB 11.8.2. Pengujian pada server tersebut tidak diklaim sebagai pengujian Oracle MySQL. Konfigurasi MySQL 8.4 melalui Compose disertakan untuk verifikasi syarat database tugas.
+Server EnvKit telah diganti dan diverifikasi sebagai Oracle MySQL Community Server 9.7.2. Hasil tahap pertama: [docs/phase-one-verification.md](docs/phase-one-verification.md).
