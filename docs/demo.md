@@ -34,8 +34,8 @@ Buka Evaluasi model. Jelaskan representasi TF-IDF, classifier Logistic Regressio
 - **Mengapa tidak chatbot?** Routing sesuai kebutuhan aplikasi dan bisa dilatih, diuji, serta dijelaskan tanpa biaya API.
 - **Apakah AI memutuskan layanan?** Tidak. Staf/admin membuat keputusan final.
 - **Bisa menambah dinas?** Bisa, melalui admin; kelas otomatis memerlukan training ulang.
-- **Apa database-nya?** Kode memakai SQLAlchemy/PyMySQL untuk MySQL; sampaikan engine runtime yang benar-benar dipakai. Server EnvKit yang tersedia saat pengembangan adalah MariaDB 11.8.2; Oracle MySQL 8.4 disediakan sebagai konfigurasi Compose dan perlu diverifikasi bila diwajibkan.
-- **Apa yang belum dibangun?** Orkestrasi multi-dinas paralel, integrasi pemerintah nyata, pembayaran, notifikasi eksternal, dan prediksi bottleneck.
+- **Apa database-nya?** Oracle MySQL Community Server 9.7.2 di EnvKit, sudah diverifikasi langsung. Compose MySQL 8.4 juga tersedia.
+- **Apa yang belum dibangun?** Profil/form builder, notifikasi persisten, laporan/CSV, mock API, cross-validation, CI/load test dan integrasi pemerintah nyata masih backlog tahap 2/3.
 
 ## Demo tahap pertama: dua dinas, live, dan audit
 
