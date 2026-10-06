@@ -19,4 +19,4 @@ def commit_unique(db: Session):
 
 
 def agency_out(agency: Agency):
-    return {key:getattr(agency,key) for key in ['id','code','name','description','active']}
+    return {key:getattr(agency,key) for key in ['id','code','name','description','active','sla_days']}

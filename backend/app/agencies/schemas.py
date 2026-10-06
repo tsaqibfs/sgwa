@@ -7,6 +7,7 @@ class AgencyCreate(BaseModel):
     code: str=Field(min_length=2,max_length=50,pattern=r'^[a-z][a-z0-9_-]+$')
     name: str=Field(min_length=2,max_length=150)
     description: str=Field(default='',max_length=2000)
+    sla_days: int=Field(default=3,ge=1,le=90)
 
 
 class AgencyUpdate(BaseModel):
@@ -14,6 +15,7 @@ class AgencyUpdate(BaseModel):
     name: str|None=Field(default=None,min_length=2,max_length=150)
     description: str|None=Field(default=None,max_length=2000)
     active: bool|None=None
+    sla_days: int|None=Field(default=None,ge=1,le=90)
 
 
 class StaffCreate(Register):

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import String, Text, ForeignKey, JSON, Boolean, DateTime, Integer
+from sqlalchemy import String, Text, ForeignKey, JSON, Boolean, DateTime, Integer,UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -18,6 +18,7 @@ class Agency(Base):
     name: Mapped[str] = mapped_column(String(150))
     description: Mapped[str] = mapped_column(Text, default='')
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    sla_days: Mapped[int] = mapped_column(Integer,default=3,server_default='3')
 
 
 class User(Base):
@@ -56,6 +57,29 @@ class ClassificationResult(Base):
     needs_review: Mapped[bool] = mapped_column(Boolean)
     model_version: Mapped[str] = mapped_column(String(80))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class RequestWorkflow(Base):
+    __tablename__='request_workflows'
+    __table_args__=(UniqueConstraint('request_id','agency_id',name='uq_request_agency'),)
+    id: Mapped[int]=mapped_column(primary_key=True)
+    request_id: Mapped[int]=mapped_column(ForeignKey('requests.id'),index=True)
+    agency_id: Mapped[int]=mapped_column(ForeignKey('agencies.id'),index=True)
+    status: Mapped[str]=mapped_column(String(20),default='pending',index=True)
+    version: Mapped[int]=mapped_column(Integer,default=1)
+    due_at: Mapped[datetime|None]=mapped_column(DateTime,index=True)
+    completed_at: Mapped[datetime|None]=mapped_column(DateTime)
+    decision_note: Mapped[str]=mapped_column(Text,default='')
+    created_at: Mapped[datetime]=mapped_column(DateTime,default=utcnow)
+    updated_at: Mapped[datetime]=mapped_column(DateTime,default=utcnow)
+
+
+class WorkflowRoute(Base):
+    __tablename__='workflow_routes'
+    __table_args__=(UniqueConstraint('source_code','agency_id',name='uq_route_destination'),)
+    id: Mapped[int]=mapped_column(primary_key=True)
+    source_code: Mapped[str]=mapped_column(ForeignKey('agencies.code'),index=True)
+    agency_id: Mapped[int]=mapped_column(ForeignKey('agencies.id'))
 
 
 class RequestEvent(Base):
