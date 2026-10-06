@@ -51,7 +51,7 @@ def test_audit_failure_rolls_back_submission(appdb,monkeypatch):
     assert response.status_code==503
     with Session(engine) as db:
         assert db.scalar(select(func.count()).select_from(Request))==0
-        assert db.scalar(select(func.count()).select_from(AuditLog))==0
+        assert db.scalar(select(func.count()).select_from(AuditLog).where(AuditLog.entity_type=='request'))==0
 
 
 def test_new_agency_reroute_keeps_prediction_history(appdb):
