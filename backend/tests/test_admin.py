@@ -29,7 +29,7 @@ def test_seed_is_idempotent_and_preserves_existing_password(appdb):
         seed(db,'PasswordDemo123!')
         initial=db.scalar(select(User.password_hash).where(User.email=='admin@demo.sgwa.id'))
         seed(db,'DifferentPassword123!')
-        assert db.scalar(select(func.count()).select_from(User))==6
-        assert db.scalar(select(func.count()).select_from(Agency))==4
+        assert db.scalar(select(func.count()).select_from(User))==5
+        assert db.scalar(select(func.count()).select_from(Agency))==25
         assert db.scalar(select(User.password_hash).where(User.email=='admin@demo.sgwa.id'))==initial
     assert login(client,'admin@demo.sgwa.id').status_code==200

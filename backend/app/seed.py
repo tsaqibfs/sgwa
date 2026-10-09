@@ -4,16 +4,17 @@ from backend.app.config import get_settings
 from backend.app.db import get_engine
 from backend.app.models import Agency,User
 from backend.app.auth.service import hash_password
+from backend.app.agencies.catalog import upsert_catalog
 DEMO_DOMAIN='demo.sgwa.id'
 
 
 def seed(db: Session,password: str):
     if len(password)<10:
         raise ValueError('DEMO_PASSWORD minimal 10 karakter.')
-    for code,name in [('dukcapil','Dinas Kependudukan & Catatan Sipil'),('perizinan','Dinas Penanaman Modal & Perizinan'),('pajak','Badan Pendapatan Daerah'),('kesehatan','Dinas Kesehatan')]:
+    upsert_catalog(db)
+    for code in ('dukcapil','perizinan','kesehatan'):
         agency=db.scalar(select(Agency).where(Agency.code==code))
-        if not agency:
-            agency=Agency(code=code,name=name);db.add(agency);db.flush()
+        name=agency.name
         email=f'{code}@{DEMO_DOMAIN}'
         if not db.scalar(select(User).where(User.email==email)):
             db.add(User(name=f'Petugas {name}',email=email,password_hash=hash_password(password),role='staff',agency_id=agency.id))

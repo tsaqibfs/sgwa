@@ -1,5 +1,7 @@
 # Setup SGWA pada Windows
 
+Panduan instalasi baru yang lengkap (SQL database/user, migrasi tabel, backend, frontend, worker, dan katalog 25 instansi) ada di [README](../README.md#instalasi-pertama-di-laptop-baru--windows--powershell). Katalog lama dibersihkan dengan `python -m scripts.sync_agency_catalog --apply`, setelah preview dan backup otomatis.
+
 Semua perintah dijalankan dari root proyek kecuali dinyatakan lain. Backend dan frontend berjalan terpisah; Vite mem-proxy `/api` ke port 8000.
 
 ## Instalasi pertama

@@ -1,14 +1,69 @@
 # SGWA — Smart Government Workflow Automation
 
-Web proyek akhir semester dengan klasifikasi permohonan Indonesia menggunakan ML lokal. Warga mengajukan kebutuhan; sistem menyarankan dinas; staf memproses; admin menangani eskalasi. Keputusan layanan tetap manual.
+Web proyek akhir semester untuk klasifikasi permohonan dengan ML lokal dan workflow paralel antar dinas. Backend dan frontend terintegrasi. Katalog terbaru berisi **25 dinas/badan** sesuai daftar pengguna; nama dan kode lengkap ada di [catalog.py](backend/app/agencies/catalog.py).
 
-## Stack
+## Status terhadap PRD
 
-Python 3.11+ / FastAPI / SQLAlchemy / Alembic, React + TypeScript + Vite, MySQL (referensi 8.4; lokal teruji 9.7.2), TF-IDF + Logistic Regression. UI memakai Radix Themes dan Phosphor. Tidak membutuhkan API AI berbayar.
+Sudah tersedia: registrasi/login; role citizen/staff/admin; pengajuan teks; TF-IDF + Logistic Regression; routing ke beberapa dinas; keputusan per dinas; eskalasi confidence rendah, penolakan dan SLA; review admin; SSE; audit; manajemen dinas/staf; editor routing dan SLA; Swagger/OpenAPI.
 
-## Jalankan di Windows
+Masih backlog: profil/ganti password, form builder, notifikasi persisten, bukti hasil, mock API, laporan/CSV, analytics prediktif, cross-validation, laporan coverage, CI, TLS/rate limiting dan load test. Review akhir dilakukan admin, berbeda dari staf pada PRD. Password menggunakan Argon2, bukan bcrypt. Worker memakai Python dan MySQL tanpa Redis/Celery. Stack mengikuti ketentuan pengguna: MySQL dan AI/ML wajib; teknologi lain bebas.
 
-Dari root proyek, pastikan MySQL/layanan database EnvKit berjalan dan `.env` sudah diatur:
+Katalog 25 instansi **bukan** 25 kelas ML. Model sekarang dilatih untuk `dukcapil`, `perizinan`, `kesehatan`, `pajak`. Instansi Pajak lama dikeluarkan dari katalog; prediksi ke instansi yang tidak tersedia masuk review admin. Dinas baru dapat menerima pengalihan manual atau menjadi tujuan aturan workflow. Kelas otomatis baru membutuhkan data berlabel dan training ulang.
+
+## Instalasi pertama di laptop baru — Windows / PowerShell
+
+### 1. Prasyarat dan dependensi
+
+Pasang Python 3.11+ (disarankan 3.12), Node.js 20.19+ atau 22.12+, dan **Oracle MySQL**. MySQL 8.4 adalah referensi PRD; pengembangan sebelumnya teruji di MySQL Community 9.7.2. EnvKit boleh digunakan dengan layanan MySQL. Ambil proyek melalui Git atau ekstrak ZIP, lalu buka PowerShell di folder yang berisi README ini. Semua perintah dijalankan dari root tersebut.
+
+```powershell
+python --version
+node --version
+npm.cmd --version
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.lock.txt
+npm.cmd --prefix frontend ci
+Copy-Item .env.example .env
+```
+
+Jangan menyalin `.venv`, `node_modules`, `.env` atau backup pribadi dari laptop lain. Jangan menimpa `.env` yang sudah dikonfigurasi. Pada Python/OS berbeda, jika lockfile tidak kompatibel gunakan `.\.venv\Scripts\python.exe -m pip install -e ".[dev]"`, lalu uji kembali. Tidak perlu activation script.
+
+### 2. Setup MySQL: database dan user
+
+Start MySQL di EnvKit/MySQL service. Login sebagai administrator melalui client:
+
+```powershell
+mysql -h 127.0.0.1 -P 3306 -u root -p
+```
+
+Jika `mysql` tidak ada di PATH, gunakan path lengkap `mysql.exe` atau SQL editor MySQL Workbench/EnvKit. Masukkan password root pada prompt lokal. Untuk **instalasi baru**, jalankan SQL berikut setelah mengganti `GANTI_PASSWORD_DB`:
+
+```sql
+SELECT VERSION(), @@version_comment;
+CREATE DATABASE sgwa_demo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE sgwa_test_codex CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'sgwa_user'@'127.0.0.1' IDENTIFIED BY 'GANTI_PASSWORD_DB';
+GRANT ALL PRIVILEGES ON sgwa_demo.* TO 'sgwa_user'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON sgwa_test_codex.* TO 'sgwa_user'@'127.0.0.1';
+```
+
+`sgwa_demo` untuk aplikasi; `sgwa_test_codex` khusus tes yang akan membersihkan tabelnya. Jika schema/user sudah ada, gunakan konfigurasi yang sesuai tanpa menghapusnya. Hasil version/comment harus menunjukkan MySQL, bukan MariaDB.
+
+### 3. Isi `.env`
+
+```dotenv
+DATABASE_URL=mysql+pymysql://sgwa_user:GANTI_PASSWORD_DB@127.0.0.1:3306/sgwa_demo
+TEST_DATABASE_URL=mysql+pymysql://sgwa_user:GANTI_PASSWORD_DB@127.0.0.1:3306/sgwa_test_codex
+JWT_SECRET=GANTI_DENGAN_SECRET_ACAK_MINIMAL_32_KARAKTER
+TRUSTED_ORIGINS=["http://localhost:5173","http://127.0.0.1:5173"]
+COOKIE_SECURE=false
+MODEL_DIR=ml/artifacts
+DEMO_PASSWORD=GANTI_PASSWORD_DEMO_MINIMAL_10_KARAKTER
+```
+
+Buat JWT secret dengan `.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(48))"` dan salin hasil ke `.env`. Password demo berbeda dari password MySQL. Karakter khusus pada password URL harus di-percent-encode. Sesuaikan kedua URL jika port berbeda: contoh bawaan `.env.example` memakai **3307** untuk Compose, sedangkan setup lokal di atas memakai **3306**. `.env` tidak masuk Git dan tidak boleh dibagikan.
+
+### 4. Buat tabel, model ML, dan data awal
 
 ```powershell
 .\.venv\Scripts\python.exe -m alembic -c backend/alembic.ini upgrade head
@@ -16,52 +71,102 @@ Dari root proyek, pastikan MySQL/layanan database EnvKit berjalan dan `.env` sud
 .\.venv\Scripts\python.exe -m backend.app.seed
 ```
 
-Terminal backend:
+**Alembic membuat seluruh tabel MySQL otomatis.** Tabel aplikasi: `agencies`, `users`, `requests`, `classification_results`, `request_workflows`, `workflow_routes`, `request_events`, `audit_logs`, ditambah `alembic_version`. Tidak perlu membuat tabel satu per satu. Startup API tidak otomatis membuat tabel. Jangan gunakan `drop_all` pada database aplikasi.
+
+Training membuat `ml/artifacts/model.joblib` yang diabaikan Git. Seed menambahkan 25 instansi dan akun demo; seed ulang mempertahankan ID, SLA, akun dan password lama. Nama katalog diperbarui sesuai daftar. Seed tidak melakukan penghapusan data lama; gunakan langkah upgrade di bawah untuk membersihkan dummy.
+
+### 5. Jalankan backend, frontend, dan worker
+
+Buka tiga terminal, semuanya di root proyek.
+
+Terminal 1 — backend:
 
 ```powershell
 .\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Terminal frontend:
+Terminal 2 — frontend:
 
 ```powershell
 npm.cmd --prefix frontend run dev
 ```
 
-Web: http://127.0.0.1:5173 · Swagger: http://127.0.0.1:8000/docs
+Terminal 3 — worker SLA:
 
-Setup lengkap, termasuk instalasi baru: [docs/setup.md](docs/setup.md). Skenario penilaian: [docs/demo.md](docs/demo.md). Dataset dan batas model: [docs/ml.md](docs/ml.md).
+```powershell
+.\.venv\Scripts\python.exe -m backend.app.sla.worker
+```
 
-## Akun demo
+Web: http://127.0.0.1:5173/ · Swagger: http://127.0.0.1:8000/docs · Health: http://127.0.0.1:8000/api/v1/health
 
-Password seluruh akun demo awal berada di `DEMO_PASSWORD` dalam `.env` lokal. Tidak dicatat di Git. Seed tidak mengganti password akun yang sudah ada.
+Vite mem-proxy `/api` ke backend 8000. MySQL harus berjalan saat aplikasi digunakan. Worker memeriksa setiap 60 detik; `--once` untuk pemeriksaan sekali. SLA berupa hari kalender; perubahan target tidak mengubah tenggat tugas lama. Health hanya liveness API, bukan bukti database/model siap.
+
+### 6. Akun demo dan smoke test
+
+Password akun awal mengikuti `DEMO_PASSWORD` pada seed pertama:
 
 | Role | Email |
 | --- | --- |
+| Admin | admin@demo.sgwa.id |
 | Warga | warga@demo.sgwa.id |
 | Staf Dukcapil | dukcapil@demo.sgwa.id |
-| Staf Perizinan | perizinan@demo.sgwa.id |
-| Staf Pajak | pajak@demo.sgwa.id |
+| Staf Perizinan / DPMPTSP | perizinan@demo.sgwa.id |
 | Staf Kesehatan | kesehatan@demo.sgwa.id |
-| Admin | admin@demo.sgwa.id |
 
-## Pengujian
+Login admin dan periksa Dinas & layanan berisi 25 instansi. Staf untuk 22 instansi lain dibuat melalui Manajemen staf. Akun Pajak lama tidak dibuat lagi. Login warga, ajukan pengurusan KTP, lalu proses melalui staf Dukcapil. Untuk demo paralel, admin dapat membuat rute Perizinan + Kesehatan sebagai simulasi koordinasi, bukan aturan pemerintah resmi. Kedua staf harus menyetujui agar status agregat Disetujui. Penolakan/SLA lewat masuk review admin. [Panduan demo](docs/demo.md).
+
+## Upgrade katalog pada database lama
+
+Hentikan backend dan worker selama pembersihan. Pastikan `.env` menunjuk database aplikasi yang benar:
+
+```powershell
+.\.venv\Scripts\python.exe -m alembic -c backend/alembic.ini upgrade head
+.\.venv\Scripts\python.exe -m scripts.sync_agency_catalog
+.\.venv\Scripts\python.exe -m scripts.sync_agency_catalog --apply
+.\.venv\Scripts\python.exe -m backend.app.seed
+```
+
+Sync tanpa `--apply` menampilkan preview dan rollback. `--apply` membuat backup SQL penuh di `.superpowers/backups/` sebelum menerapkan satu transaksi. Backup mengandung data privat; jangan dibagikan. Untuk pemulihan, uji backup pada schema terpisah yang kosong sebelum memulihkan aplikasi.
+
+Pembersihan mengenali Badan Pendapatan Daerah lama (`pajak`) dan fixture `Dinas Pendidikan Demo` berakhiran timestamp. Pengajuan warga demo terkait, tugas, klasifikasi, riwayat pengajuan dan staf demo terkait ikut dihapus. Riwayat lain tetap valid; aktor staf yang dihapus menjadi anonim. Jika ada akun/pengajuan non-demo terkait, transaksi dihentikan. Instansi tambahan pengguna tidak dianggap dummy otomatis. ID dan SLA Dukcapil/Kesehatan/Perizinan tetap.
+
+## Pengujian dan build
+
+Pastikan `TEST_DATABASE_URL` adalah schema terpisah bernama `sgwa_test...`:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/test_backend.py
 npm.cmd --prefix frontend test -- --run
 npm.cmd --prefix frontend run build
-npm.cmd --prefix frontend run e2e
 ```
 
-Backend integration tests hanya memakai database dengan nama berawalan `sgwa_test`. Tes tersebut membersihkan tabel dalam database test. E2E memakai server lokal yang sudah berjalan dan menambah data demo. Browser e2e default: Microsoft Edge terinstal.
+Backend tests membersihkan database test. Build menghasilkan `frontend/dist`; `dev` adalah cara demo lokal dengan proxy, bukan deployment produksi. Dengan kedua server berjalan dan Microsoft Edge terpasang:
 
-## Menambah dinas
+```powershell
+npm.cmd --prefix frontend run e2e
+.\.venv\Scripts\python.exe -m scripts.cleanup_education_dummy
+```
 
-Admin dapat menambah dinas dan menugaskan staf tanpa mengubah kode/skema. Dinas baru langsung menerima pengalihan manual dan dapat ditambahkan sebagai tujuan aturan routing. Untuk klasifikasi otomatis: tambah minimal 50 contoh dengan label berupa kode dinas dan minimal lima kelompok skenario, training ulang, lalu restart backend. Prediksi historis tetap disimpan.
+E2E menambahkan data demo pada database aplikasi, termasuk fixture Pendidikan. Jalankan di demo/salinan DB. Cleanup menghapus fixture yang dikenali, bukan DINAS PENDIDIKAN resmi. Screenshots: `frontend/test-results/`.
 
-## Batas demonstrasi
+## Troubleshooting
 
-Dataset awal berisi 200 teks sintetis dari 40 kelompok; evaluasi bukan bukti akurasi pada data warga nyata. Skor model bukan kepastian layanan. Tahap pertama mendukung tugas paralel lintas dinas, SLA hari kalender, pembaruan langsung SSE dan audit admin, tanpa pembayaran, tanda tangan, notifikasi eksternal, atau integrasi pemerintah nyata.
+| Gejala | Pemeriksaan |
+| --- | --- |
+| MySQL error 2003 | Start MySQL, cocokkan host/port `.env`. |
+| Access denied / 1045 | Cocokkan user/password/host grant; password demo bukan password DB. |
+| Unknown database / tabel tidak ada | Buat schema, lalu jalankan Alembic upgrade head. |
+| Model 503 | Jalankan training dan restart backend. |
+| Login demo gagal | Jalankan seed; perubahan DEMO_PASSWORD tidak mengganti password akun lama. |
+| Port 5173/8000 terpakai | Periksa server proyek sebelumnya. |
+| 403 CSRF/origin | Gunakan URL frontend yang diizinkan, muat ulang tab. |
+| 409 keputusan | Refresh detail dan buat keputusan/konfirmasi baru. |
+| Instansi baru belum dirutekan AI | Tambah dataset berlabel/retrain atau gunakan pengalihan admin. |
 
-Server EnvKit telah diganti dan diverifikasi sebagai Oracle MySQL Community Server 9.7.2. Hasil tahap pertama: [docs/phase-one-verification.md](docs/phase-one-verification.md).
+## Bukti dan batas
+
+[Verifikasi tahap pertama](docs/phase-one-verification.md) adalah bukti historis, bukan pengujian setiap laptop. Dataset awal berisi 200 teks sintetis; macro-F1 1,00 berasal dari 40 contoh uji sintetis. Belum ada klaim kualitas pada data warga nyata, load test 1.000 pengguna, integrasi pemerintah produksi, pembayaran, atau tanda tangan tersertifikasi.
+
+Dokumen: [setup](docs/setup.md), [ML](docs/ml.md), [demo](docs/demo.md), [verifikasi](docs/verification.md).
+
+Verifikasi pembaruan katalog dan panduan instalasi: [catalog-verification.md](docs/catalog-verification.md).

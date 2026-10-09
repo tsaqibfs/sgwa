@@ -19,7 +19,7 @@ Pastikan database, backend (8000), frontend (5173), migrasi, artefak model, dan 
 
 1. Buat permohonan dengan teks tidak dikenal seperti `zzzzz qqqqq xxxxx yyyyy zzzzz qqqqq`.
 2. Sistem menandai perlu review, tanpa dinas tujuan yang dipaksakan.
-3. Login admin; tambahkan Dinas Pendidikan dengan kode `pendidikan` jika belum ada.
+3. Login admin; pilih DINAS PENDIDIKAN yang sudah ada pada katalog 25 instansi.
 4. Isi alasan pengalihan dan reroute permohonan ke Pendidikan.
 5. Tunjukkan bahwa riwayat prediksi lama tetap tersimpan dan dinas baru langsung menerima rute manual.
 6. Jelaskan: klasifikasi otomatis ke dinas baru memerlukan data dan retraining; bukan sekadar menambah nama di admin.
@@ -39,10 +39,10 @@ Buka Evaluasi model. Jelaskan representasi TF-IDF, classifier Logistic Regressio
 
 ## Demo tahap pertama: dua dinas, live, dan audit
 
-1. Login admin, buka Aturan routing. Pilih Perizinan, centang Badan Pendapatan Daerah, simpan. Atur SLA dinas pada Dinas & layanan (1–90 hari kalender).
+1. Login admin, buka Aturan routing. Pilih Perizinan, centang DINAS KESEHATAN, simpan. Atur SLA dinas pada Dinas & layanan (1–90 hari kalender).
 2. Login warga dan ajukan kebutuhan izin usaha. Model memilih kelas utama; aturan memperluasnya menjadi dua tugas. Buka detail di satu jendela.
 3. Di jendela terpisah login staf perizinan, mulai proses lalu setujui dengan catatan dan konfirmasi. Status keseluruhan masih Diproses.
-4. Login staf pajak, mulai proses dan setujui. Status warga berubah langsung menjadi Disetujui tanpa refresh.
+4. Login staf kesehatan, mulai proses dan setujui. Status warga berubah langsung menjadi Disetujui tanpa refresh.
 5. Admin membuka Jejak audit, filter aksi `request.task_updated`, lihat pelaku, waktu WIB, entitas dan perubahan.
 6. Penolakan atau SLA lewat membuat permohonan masuk review admin; tugas dibekukan sampai keputusan final atau putaran routing baru. Riwayat putaran sebelumnya tetap terlihat.
 7. Kembalikan aturan Perizinan ke dinas utama bila selesai demo.
