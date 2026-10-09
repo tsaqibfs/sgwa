@@ -2,6 +2,7 @@
 __pycache__/
 .pytest_cache/
 .env
+.env.docker
 node_modules/
 dist/
 *.egg-info/

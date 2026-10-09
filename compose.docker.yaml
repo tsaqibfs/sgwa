@@ -1,0 +1,94 @@
+name: sgwa-demo-docker
+
+x-app: &app
+  image: sgwa-demo-backend:local
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+  environment:
+    DATABASE_URL: mysql+pymysql://sgwa:${MYSQL_PASSWORD:?Isi MYSQL_PASSWORD di .env.docker}@mysql:3306/sgwa_demo
+    JWT_SECRET: ${JWT_SECRET:?Isi JWT_SECRET di .env.docker}
+    DEMO_PASSWORD: ${DEMO_PASSWORD:?Isi DEMO_PASSWORD di .env.docker}
+    TRUSTED_ORIGINS: '["http://localhost:8080","http://127.0.0.1:8080","http://localhost:8001","http://127.0.0.1:8001"]'
+    COOKIE_SECURE: "false"
+    MODEL_DIR: /app/ml/artifacts
+  init: true
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: sgwa_demo
+      MYSQL_USER: sgwa
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Isi MYSQL_PASSWORD di .env.docker}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Isi MYSQL_ROOT_PASSWORD di .env.docker}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$${MYSQL_PASSWORD}\" mysql -h127.0.0.1 -u\"$${MYSQL_USER}\" \"$${MYSQL_DATABASE}\" -e 'SELECT 1' >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      start_period: 30s
+      retries: 30
+    restart: unless-stopped
+
+  init:
+    <<: *app
+    command: ["python", "scripts/container_init.py"]
+    volumes:
+      - model_data:/app/ml/artifacts
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    <<: *app
+    ports:
+      - "127.0.0.1:8001:8000"
+    volumes:
+      - model_data:/app/ml/artifacts:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 12
+    restart: unless-stopped
+
+  worker:
+    <<: *app
+    command: ["python", "-m", "backend.app.sla.worker"]
+    volumes:
+      - model_data:/app/ml/artifacts:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  model_data:

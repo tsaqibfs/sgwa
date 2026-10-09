@@ -10,6 +10,10 @@ Masih backlog: profil/ganti password, form builder, notifikasi persisten, bukti 
 
 Katalog 25 instansi **bukan** 25 kelas ML. Model sekarang dilatih untuk `dukcapil`, `perizinan`, `kesehatan`, `pajak`. Instansi Pajak lama dikeluarkan dari katalog; prediksi ke instansi yang tidak tersedia masuk review admin. Dinas baru dapat menerima pengalihan manual atau menjadi tujuan aturan workflow. Kelas otomatis baru membutuhkan data berlabel dan training ulang.
 
+## Instalasi dengan Docker (alternatif lengkap)
+
+Untuk menjalankan seluruh aplikasi tanpa memasang Python, Node.js dan MySQL lokal, gunakan [panduan Docker](docs/docker.md). Paket `compose.docker.yaml` menyediakan frontend di **localhost:8080**, API/Swagger di **localhost:8001**, worker SLA, dan MySQL 8.4. Migrasi tabel, training ML dan seed 25 instansi berjalan otomatis. Database container terpisah dari EnvKit dan `compose.yaml` lama.
+
 ## Instalasi pertama di laptop baru — Windows / PowerShell
 
 ### 1. Prasyarat dan dependensi
