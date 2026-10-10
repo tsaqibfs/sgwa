@@ -48,11 +48,11 @@
 
 **Interfaces:** `normalize_text(text: str, version: str = 'id-v1') -> str`; `text_hash(text: str, version: str = 'id-v1') -> str`; `build_dataset(path: Path, manifest_path: Path) -> dict`. CSV keys `text,label,group_id,provenance,dataset_version,text_hash`. Manifest keys `dataset_version,normalizer_version,seed,groups,rows_hash,manifest_hash`, `groups` sorted holdout group IDs. Dataset version `sgwa-25-synthetic-v1`.
 
-- [ ] Write tests named `test_normalizer_is_conservative_and_idempotent`, `test_dataset_has_25_labels_and_stable_holdout`, `test_duplicate_normalized_text_is_rejected`. Assertions: `normalize_text('JLN  bnyk lampmer') == 'jalan banyak lampu merah'`, negation/names preserved, exact catalog labels, 2.500 rows, 250 groups, 50 holdout groups, repeated byte-identical exports, no normalized collisions/conflicting labels.
-- [ ] Run `.\.venv\Scripts\python.exe -m pytest ml/tests/test_dataset.py -q`. Expected: FAIL missing module/API or 25-class assertions against old generator.
-- [ ] Implement interfaces and 10 independent service families per class, 10 deterministic variants each, including informal language. Make CSV writing callable rather than only `__main__`; validate all groups/duplicates before publishing files. Manifest canonical JSON hash excludes its own hash field.
-- [ ] Repeat the test command. Expected: PASS. Run `.\.venv\Scripts\python.exe -m ml.build_dataset`. Expected: exit 0, 25-label CSV and stable holdout manifest.
-- [ ] Commit dataset/normalizer plus tests: `feat: add versioned Indonesian normalization and 25-class dataset`.
+- [x] Write tests named `test_normalizer_is_conservative_and_idempotent`, `test_dataset_has_25_labels_and_stable_holdout`, `test_duplicate_normalized_text_is_rejected`. Assertions: `normalize_text('JLN  bnyk lampmer') == 'jalan banyak lampu merah'`, negation/names preserved, exact catalog labels, 2.500 rows, 250 groups, 50 holdout groups, repeated byte-identical exports, no normalized collisions/conflicting labels.
+- [x] Run `.\.venv\Scripts\python.exe -m pytest ml/tests/test_dataset.py -q`. Expected: FAIL missing module/API or 25-class assertions against old generator.
+- [x] Implement interfaces and 10 independent service families per class, 10 deterministic variants each, including informal language. Make CSV writing callable rather than only `__main__`; validate all groups/duplicates before publishing files. Manifest canonical JSON hash excludes its own hash field.
+- [x] Repeat the test command. Expected: PASS. Run `.\.venv\Scripts\python.exe -m ml.build_dataset`. Expected: exit 0, 25-label CSV and stable holdout manifest.
+- [x] Commit dataset/normalizer plus tests: `feat: add versioned Indonesian normalization and 25-class dataset`.
 
 ### Task 2: Group CV, threshold dan artefak
 
@@ -60,10 +60,10 @@
 
 **Interfaces:** `train(dataset_path: Path, output_dir: Path, *, holdout_path: Path | None = None, feedback_manifest: dict | None = None) -> dict` continues returning report. `validate_artifacts(directory: Path) -> dict` verifies metadata/report/checksums/classes/normalizer and returns validated metadata before trusted deserialization. `choose_threshold(actual: list[str], predicted: list[str], confidence: list[float]) -> dict` returns `threshold,auto_routing_enabled,accepted_count,accepted_precision,coverage,grid`. `evaluate_groups(rows: list[dict], holdout: dict) -> dict` yields OOF plus fold manifest internally. Reports retain existing fields and add `cross_validation` with `folds,mean_macro_f1,std_macro_f1`, `routing_policy`, `holdout_manifest_hash`, `normalizer_version`, `provenance_counts`. metadata includes same identity/policy values.
 
-- [ ] Write tests: `test_threshold_never_below_70_and_disables_when_no_candidate`, `test_cv_has_no_holdout_or_group_leakage`, `test_each_fold_has_all_classes`, `test_artifact_identity_includes_training_config`, `test_repeated_training_matches_report`. Check 25x25 matrix, 2.000 base train/500 holdout rows, 5 folds, fresh vectorizer excludes fold-only tokens, OOF threshold independent of holdout labels, no-class fold rejected, tampered manifest/duplicate rejected.
-- [ ] Run `.\.venv\Scripts\python.exe -m pytest ml/tests -q`. Expected: FAIL old 4-class assumptions/missing CV policy.
-- [ ] Implement explicit StratifiedGroupKFold loop `n_splits=5,shuffle=True,random_state=42`, validate fold classes, map probabilities by model.classes_, and fit final pipeline only after OOF. Use shared normalizer before features. Validate numeric fields finite, full report/metadata and checksums. Record actual library versions. Model ID `ml25-` + first 24 hex SHA256 canonical dataset/config/normalizer/manifest identity. Do not use holdout scores in threshold choice.
-- [ ] Repeat test command. Expected: PASS, measured scores within [0,1], reproducible; no required perfect-score assertion. Commit `feat: evaluate 25-class model with grouped CV and validated routing policy`.
+- [x] Write tests: `test_threshold_never_below_70_and_disables_when_no_candidate`, `test_cv_has_no_holdout_or_group_leakage`, `test_each_fold_has_all_classes`, `test_artifact_identity_includes_training_config`, `test_repeated_training_matches_report`. Check 25x25 matrix, 2.000 base train/500 holdout rows, 5 folds, fresh vectorizer excludes fold-only tokens, OOF threshold independent of holdout labels, no-class fold rejected, tampered manifest/duplicate rejected.
+- [x] Run `.\.venv\Scripts\python.exe -m pytest ml/tests -q`. Expected: FAIL old 4-class assumptions/missing CV policy.
+- [x] Implement explicit StratifiedGroupKFold loop `n_splits=5,shuffle=True,random_state=42`, validate fold classes, map probabilities by model.classes_, and fit final pipeline only after OOF. Use shared normalizer before features. Validate numeric fields finite, full report/metadata and checksums. Record actual library versions. Model ID `ml25-` + first 24 hex SHA256 canonical dataset/config/normalizer/manifest identity. Do not use holdout scores in threshold choice.
+- [x] Repeat test command. Expected: PASS, measured scores within [0,1], reproducible; no required perfect-score assertion. Commit `feat: evaluate 25-class model with grouped CV and validated routing policy`.
 
 ### Task 3: MySQL feedback et registry schema
 

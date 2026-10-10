@@ -28,7 +28,7 @@ def test_fresh_and_upgrade_preserve_history_seed_and_backfill(historical):
         run('alembic', '-c', 'backend/alembic.ini', 'upgrade', 'head')
         for _ in range(2): run('backend.app.seed'); run('scripts.backfill_results')
         with engine.connect() as db:
-            assert db.scalar(text('SELECT version_num FROM alembic_version')) == '0007'
+            assert db.scalar(text('SELECT version_num FROM alembic_version')) == '0008'
             assert db.scalar(text('SELECT COUNT(*) FROM agencies WHERE active=1')) == 25
             assert db.scalar(text('SELECT COUNT(*) FROM users')) == 5
             assert db.scalar(text('SELECT COUNT(*) FROM service_forms')) == 0

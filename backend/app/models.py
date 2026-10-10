@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import String, Text, ForeignKey, JSON, Boolean, DateTime, Integer,UniqueConstraint
+from sqlalchemy import String, Text, ForeignKey, JSON, Boolean, DateTime, Integer,UniqueConstraint,CheckConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -166,3 +166,71 @@ class MockCheck(Base):
     checked_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     payload: Mapped[dict] = mapped_column(JSON)
     idempotency_key: Mapped[str] = mapped_column(String(100))
+
+
+class MLFeedback(Base):
+    __tablename__ = 'ml_feedback'
+    __table_args__ = (UniqueConstraint('request_id','revision',name='uq_ml_feedback_revision'),
+                     UniqueConstraint('created_by','idempotency_key',name='uq_ml_feedback_key'),
+                     CheckConstraint("status IN ('pending','verified','rejected','superseded')",name='ck_ml_feedback_status'),
+                     CheckConstraint("provenance IN ('synthetic_demo','real')",name='ck_ml_feedback_provenance'))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    request_id: Mapped[int] = mapped_column(ForeignKey('requests.id'),index=True)
+    revision: Mapped[int] = mapped_column(Integer)
+    original_text: Mapped[str] = mapped_column(Text)
+    original_prediction: Mapped[dict] = mapped_column(JSON)
+    training_text: Mapped[str] = mapped_column(Text)
+    text_hash: Mapped[str] = mapped_column(String(64),index=True)
+    corrected_code: Mapped[str] = mapped_column(ForeignKey('agencies.code'))
+    provenance: Mapped[str] = mapped_column(String(20))
+    family_key: Mapped[str|None] = mapped_column(String(80))
+    reason: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20),default='pending',index=True)
+    created_by: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    created_at: Mapped[datetime] = mapped_column(DateTime,default=utcnow)
+    reviewed_by: Mapped[int|None] = mapped_column(ForeignKey('users.id'))
+    reviewed_at: Mapped[datetime|None] = mapped_column(DateTime)
+    review_note: Mapped[str|None] = mapped_column(Text)
+    idempotency_key: Mapped[str] = mapped_column(String(100))
+    payload_hash: Mapped[str] = mapped_column(String(64))
+
+
+class MLFeedbackHead(Base):
+    __tablename__ = 'ml_feedback_heads'
+    request_id: Mapped[int] = mapped_column(ForeignKey('requests.id'),primary_key=True)
+    revision: Mapped[int] = mapped_column(Integer,default=0)
+    current_feedback_id: Mapped[int|None] = mapped_column(ForeignKey('ml_feedback.id',name='fk_ml_head_current'))
+
+
+class MLModelVersion(Base):
+    __tablename__ = 'ml_model_versions'
+    __table_args__ = (CheckConstraint("state IN ('ready','failed')",name='ck_ml_model_state'),)
+    id: Mapped[str] = mapped_column(String(80),primary_key=True)
+    state: Mapped[str] = mapped_column(String(20))
+    relative_path: Mapped[str] = mapped_column(String(150))
+    model_hash: Mapped[str] = mapped_column(String(64))
+    metadata_json: Mapped[dict] = mapped_column(JSON)
+    evaluation_json: Mapped[dict] = mapped_column(JSON)
+    feedback_manifest: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime,default=utcnow)
+    registered_by: Mapped[int|None] = mapped_column(ForeignKey('users.id'))
+    failure_reason: Mapped[str|None] = mapped_column(Text)
+
+
+class MLActiveModel(Base):
+    __tablename__ = 'ml_active_model'
+    __table_args__ = (CheckConstraint('id=1',name='ck_ml_singleton'),)
+    id: Mapped[int] = mapped_column(primary_key=True,autoincrement=False)
+    model_version_id: Mapped[str|None] = mapped_column(ForeignKey('ml_model_versions.id'))
+    revision: Mapped[int] = mapped_column(Integer,default=0)
+
+
+class MLActivation(Base):
+    __tablename__ = 'ml_activations'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    model_version_id: Mapped[str] = mapped_column(ForeignKey('ml_model_versions.id'))
+    previous_version_id: Mapped[str|None] = mapped_column(ForeignKey('ml_model_versions.id'))
+    actor_id: Mapped[int|None] = mapped_column(ForeignKey('users.id'))
+    reason: Mapped[str] = mapped_column(Text)
+    kind: Mapped[str] = mapped_column(String(20))
+    created_at: Mapped[datetime] = mapped_column(DateTime,default=utcnow)
