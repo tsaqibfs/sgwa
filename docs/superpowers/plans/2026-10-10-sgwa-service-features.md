@@ -152,4 +152,4 @@ Keep a plan-specific progress ledger under `.superpowers/sdd/2026-10-10-sgwa-ser
 
 Coverage mapping: spec profile/session→1–2; form/version/mismatch→3–4; notifications/atomicity/SSE→5,8; result snapshot/backfill/print→6,8; mocks/scope/idempotency→7–8; upgrade/native/Docker/docs→9. Shared interfaces: user version/auth actor, form schema/answers, workflow `finish` transaction, live revision, result snapshot and mock payload. The five Review Focus cases have explicit tests above.
 
-Plan status: approved and implemented; whole-change review pending. Native/inline execution already selected by the user; preserve it. After written-plan review, use executing-plans continuously through tasks 1–9. Later ML feedback training work remains phase B with its own spec/plan.
+Plan status: complete: whole-change review and one verified fix pass finished; deferred minor documented. Native/inline execution already selected by the user; preserve it. After written-plan review, use executing-plans continuously through tasks 1–9. Later ML feedback training work remains phase B with its own spec/plan.
