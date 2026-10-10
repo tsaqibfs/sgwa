@@ -4,11 +4,13 @@ Web proyek akhir semester untuk klasifikasi permohonan dengan ML lokal dan workf
 
 ## Status terhadap PRD
 
-Sudah tersedia: registrasi/login; role citizen/staff/admin; pengajuan teks; TF-IDF + Logistic Regression; routing ke beberapa dinas; keputusan per dinas; eskalasi confidence rendah, penolakan dan SLA; review admin; SSE; audit; manajemen dinas/staf; editor routing dan SLA; Swagger/OpenAPI.
+Sudah tersedia: registrasi/login; role citizen/staff/admin; pengajuan teks; TF-IDF + Logistic Regression; routing ke beberapa dinas; keputusan per dinas; eskalasi confidence rendah, penolakan dan SLA; review admin; SSE; audit; manajemen dinas/staf; editor routing dan SLA; Swagger/OpenAPI; profil/ganti password dengan pencabutan seluruh sesi; form builder dan jawaban versi historis; notifikasi persisten; bukti hasil dengan snapshot/cetak; mock API sintetis.
 
-Masih backlog: profil/ganti password, form builder, notifikasi persisten, bukti hasil, mock API, laporan/CSV, analytics prediktif, cross-validation, laporan coverage, CI, TLS/rate limiting dan load test. Review akhir dilakukan admin, berbeda dari staf pada PRD. Password menggunakan Argon2, bukan bcrypt. Worker memakai Python dan MySQL tanpa Redis/Celery. Stack mengikuti ketentuan pengguna: MySQL dan AI/ML wajib; teknologi lain bebas.
+Masih backlog: training 25 kelas, pembelajaran dari koreksi admin melalui retraining batch yang dievaluasi, laporan/CSV, analytics prediktif, cross-validation, laporan coverage, CI, TLS/rate limiting dan load test. Review akhir dilakukan admin, berbeda dari staf pada PRD. Password menggunakan Argon2, bukan bcrypt. Worker memakai Python dan MySQL tanpa Redis/Celery. Stack mengikuti ketentuan pengguna: MySQL dan AI/ML wajib; teknologi lain bebas.
 
 Katalog 25 instansi **bukan** 25 kelas ML. Model sekarang dilatih untuk `dukcapil`, `perizinan`, `kesehatan`, `pajak`. Instansi Pajak lama dikeluarkan dari katalog; prediksi ke instansi yang tidak tersedia masuk review admin. Dinas baru dapat menerima pengalihan manual atau menjadi tujuan aturan workflow. Kelas otomatis baru membutuhkan data berlabel dan training ulang.
+
+Tahap A teruji pada migrasi `0007`; rincian bukti pengujian dan batasnya ada di [verifikasi fitur layanan](docs/service-features-verification.md). Sesi sebelum migrasi perlu login ulang, password akun lama tetap. Bukti berlabel **Bukti hasil demonstrasi akademik — bukan dokumen resmi**.
 
 ## Instalasi dengan Docker (alternatif lengkap)
 
@@ -73,6 +75,7 @@ Buat JWT secret dengan `.\.venv\Scripts\python.exe -c "import secrets; print(sec
 .\.venv\Scripts\python.exe -m alembic -c backend/alembic.ini upgrade head
 .\.venv\Scripts\python.exe -m ml.train
 .\.venv\Scripts\python.exe -m backend.app.seed
+.\.venv\Scripts\python.exe -m scripts.backfill_results
 ```
 
 **Alembic membuat seluruh tabel MySQL otomatis.** Tabel aplikasi: `agencies`, `users`, `requests`, `classification_results`, `request_workflows`, `workflow_routes`, `request_events`, `audit_logs`, ditambah `alembic_version`. Tidak perlu membuat tabel satu per satu. Startup API tidak otomatis membuat tabel. Jangan gunakan `drop_all` pada database aplikasi.
@@ -128,6 +131,7 @@ Hentikan backend dan worker selama pembersihan. Pastikan `.env` menunjuk databas
 .\.venv\Scripts\python.exe -m scripts.sync_agency_catalog
 .\.venv\Scripts\python.exe -m scripts.sync_agency_catalog --apply
 .\.venv\Scripts\python.exe -m backend.app.seed
+.\.venv\Scripts\python.exe -m scripts.backfill_results
 ```
 
 Sync tanpa `--apply` menampilkan preview dan rollback. `--apply` membuat backup SQL penuh di `.superpowers/backups/` sebelum menerapkan satu transaksi. Backup mengandung data privat; jangan dibagikan. Untuk pemulihan, uji backup pada schema terpisah yang kosong sebelum memulihkan aplikasi.

@@ -25,7 +25,7 @@ Build pertama memerlukan internet dan dapat memakan beberapa menit. Jika `docker
 $env:PATH = 'C:\Program Files\Docker\Docker\resources\bin;' + $env:PATH
 ```
 
-Urutan startup: MySQL sehat → `init` menjalankan Alembic, training ML, dan seed → API dan worker → frontend. Status `init` **Exited (0)** adalah normal. Tabel dibuat otomatis; tidak perlu mengimpor SQL manual. Seed menyediakan 25 instansi resmi dan lima akun: `warga@demo.sgwa.id`, `admin@demo.sgwa.id`, `dukcapil@demo.sgwa.id`, `perizinan@demo.sgwa.id`, `kesehatan@demo.sgwa.id`. Semua akun baru memakai `DEMO_PASSWORD`.
+Urutan startup: MySQL sehat → `init` menjalankan Alembic, training ML, seed, dan backfill bukti historis → API dan worker → frontend. Status `init` **Exited (0)** adalah normal. Tabel dibuat otomatis; tidak perlu mengimpor SQL manual. Seed menyediakan 25 instansi resmi dan lima akun: `warga@demo.sgwa.id`, `admin@demo.sgwa.id`, `dukcapil@demo.sgwa.id`, `perizinan@demo.sgwa.id`, `kesehatan@demo.sgwa.id`. Semua akun baru memakai `DEMO_PASSWORD`.
 
 - Frontend: http://localhost:8080
 - Swagger API: http://localhost:8001/docs
@@ -59,3 +59,7 @@ Referensi: [urutan startup Docker Compose](https://docs.docker.com/compose/how-t
 ## Hasil verifikasi lokal — 9 Oktober 2026
 
 Build backend Python 3.12 dan frontend berhasil. MySQL Community 8.4.11, migrasi `0002`, 25 instansi aktif dan lima akun terverifikasi. API/frontend/MySQL sehat, worker memeriksa SLA, dan `init` selesai dengan exit code 0. Login cookie/CSRF, pemuatan model empat kelas, SSE melalui Nginx, navigasi SPA, serta pengiriman permohonan dengan klasifikasi dan workflow diuji melalui browser Edge. Pengujian API/SSE diulang setelah backend dibuat ulang dan tetap lolos. Permohonan uji dibersihkan dari database container; data EnvKit tidak disentuh.
+
+## Fitur layanan — 10 Oktober 2026
+
+Migrasi terbaru `0007` menambahkan profil/session version, formulir/versi, notifikasi, bukti hasil dan mock checks. Init menyertakan script backfill dan menjalankannya setelah seed; volume lama diperbarui secara additive, password akun lama tetap. Login ulang sesudah migrasi. Bukti tetap untuk demonstrasi akademik, dengan cetak/simpan PDF melalui browser. Lihat [verifikasi fitur layanan](service-features-verification.md) untuk hasil build, pengujian dan batas ML yang masih empat kelas.

@@ -35,7 +35,7 @@ Buka Evaluasi model. Jelaskan representasi TF-IDF, classifier Logistic Regressio
 - **Apakah AI memutuskan layanan?** Tidak. Staf/admin membuat keputusan final.
 - **Bisa menambah dinas?** Bisa, melalui admin; kelas otomatis memerlukan training ulang.
 - **Apa database-nya?** Oracle MySQL Community Server 9.7.2 di EnvKit, sudah diverifikasi langsung. Compose MySQL 8.4 juga tersedia.
-- **Apa yang belum dibangun?** Profil/form builder, notifikasi persisten, laporan/CSV, mock API, cross-validation, CI/load test dan integrasi pemerintah nyata masih backlog tahap 2/3.
+- **Apa yang belum dibangun?** Training 25 kelas dan retraining dari koreksi admin, laporan/CSV, analytics prediktif, cross-validation, coverage, CI, TLS/rate limiting, load test dan integrasi pemerintah nyata masih backlog tahap B/C.
 
 ## Demo tahap pertama: dua dinas, live, dan audit
 
@@ -48,3 +48,14 @@ Buka Evaluasi model. Jelaskan representasi TF-IDF, classifier Logistic Regressio
 7. Kembalikan aturan Perizinan ke dinas utama bila selesai demo.
 
 Untuk menunjukkan SLA tanpa menunggu beberapa hari, gunakan pengujian `backend/tests/test_sla.py` pada schema test terpisah dengan waktu terkontrol. `python -m backend.app.sla.worker --once` menjalankan pemeriksaan nyata; jangan mengubah deadline data warga hanya untuk demo. SSE mempertahankan draft dan tersambung ulang otomatis; status koneksi tersedia di header.
+
+## Demo fitur layanan tahap A
+
+1. Semua role membuka Profil & keamanan. Ubah nama/telepon/alamat; untuk menunjukkan ganti password gunakan akun warga sintetis khusus, karena seluruh sesinya akan berakhir.
+2. Admin membuka Formulir layanan, pilih instansi aktif, susun field, simpan draft lalu publikasikan. Warga dapat memilih layanan pada Pengajuan baru atau tetap mengirim judul/deskripsi tanpa formulir. Jika arah formulir berbeda dari kelas ML, permohonan masuk review admin.
+3. Terbitkan versi berikutnya; detail permohonan sebelumnya tetap menampilkan label dan jawaban versi lama. Konflik publikasi meminta warga meninjau ulang jawaban sebelum mengirim kembali.
+4. Buka Notifikasi: pengajuan, progres, pengalihan/eskalasi dan keputusan tersimpan. Tandai satu/semua dibaca, logout/login dan tunjukkan bahwa riwayat tetap ada.
+5. Staf/admin membuka Simulasi pemeriksaan pada detail. Pilih identitas/kelengkapan izin/layanan umum dan skenario cocok/tidak cocok/tidak tersedia. Hasil memakai fixture sintetis dan tidak menyetujui layanan otomatis.
+6. Setelah keputusan final, buka Lihat bukti hasil. Nomor, pemohon, waktu/catatan serta keputusan instansi merupakan snapshot. Gunakan Cetak / simpan PDF melalui browser; label demonstrasi akademik tetap tercetak. Bukti historis yang dikonversi menjelaskan informasi yang tidak tercatat.
+
+Tidak ada riwayat/formulir contoh yang otomatis dimasukkan seed. Buat contoh secara sadar untuk demo; jangan memakai data pribadi asli.

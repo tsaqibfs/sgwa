@@ -8,6 +8,7 @@ RUN pip install --no-cache-dir -r requirements.lock.txt \
 COPY backend ./backend
 COPY ml ./ml
 COPY scripts/container_init.py ./scripts/container_init.py
+COPY scripts/backfill_results.py ./scripts/backfill_results.py
 RUN mkdir -p ml/artifacts && chown -R app:app ml/artifacts
 USER app
 EXPOSE 8000

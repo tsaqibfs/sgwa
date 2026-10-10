@@ -1,6 +1,6 @@
 # SGWA tahap A — profil dan fitur layanan
 
-Tanggal: 10 Oktober 2026. Status: **cakupan disetujui untuk dilanjutkan; rencana implementasi menunggu review pengguna**.
+Tanggal: 10 Oktober 2026. Status: **rencana disetujui dan fitur diimplementasikan; review kode akhir sedang dilakukan**.
 Dokumen induk: [roadmap penyelesaian](2026-10-10-sgwa-completion-roadmap.md).
 
 ## Tujuan dan batas
