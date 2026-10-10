@@ -15,3 +15,7 @@ export type FormAnswers=Record<string,string|number|boolean>;
 export type FormVersion={id:number;version:number;title:string;state:string;schema:FormSchema};
 export type ServiceForm={id:number;title:string;agency_id:number;active:boolean;current_version:number;published:FormVersion|null;draft:FormVersion|null};
 export type FormSnapshot={id:number;title:string;version:number;schema:FormSchema;answers:FormAnswers};
+export type Notice={id:number;kind:string;title:string;request_id:number|null;can_open_request:boolean;created_at:string;read_at:string|null};
+export type NoticeList={items:Notice[];total:number;page:number;page_size:number};
+export type MockCheck={id:number;check_type:string;outcome:string;checked_at:string;payload:{simulation:true;fixture:string;subject:string;message:string}};
+export type ResultEvidence={id:number;number:string;request_id:number;label:string;snapshot:{reference:string;owner_name:string;title:string;status:Status;finalized_at:string|null;notes:string|null;converted:boolean;agency_decisions:{agency_id:number;agency_name:string;status:Status;note:string|null;completed_at:string|null}[]}};
