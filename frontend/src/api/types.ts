@@ -1,6 +1,7 @@
 export type Role='citizen'|'staff'|'admin';
 export type Status='pending'|'processing'|'escalated'|'approved'|'rejected';
 export type User={id:number;name:string;email:string;role:Role;agency_id:number|null;active:boolean};
+export type ProfileInfo={id:number;name:string;email:string;role:Role;agency_id:number|null;phone:string|null;address:string|null};
 export type Agency={id:number;code:string;name:string;description:string;active:boolean;sla_days:number};
 export type WorkflowTask={id:number;agency_id:number;agency_name:string;status:Exclude<Status,'escalated'>;version:number;due_at:string|null;completed_at:string|null;decision_note:string;overdue:boolean};
 export type Classification={predicted_agency_code:string;probabilities:Record<string,number>;confidence:number;needs_review:boolean;model_version:string};
