@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from backend.app.models import User,Agency,Request,AuditLog
-from backend.app.auth.service import decode
+from backend.app.auth.service import session_actor
 from backend.app.requests.service import scoped_query
 
 
@@ -22,12 +22,10 @@ def scoped_revision(db:Session,actor:User)->str:
 
 
 def session_snapshot(engine,token:str)->tuple[tuple,str]:
-    try:
-        user_id=int(decode(token,'session')['sub'])
-    except (jwt.InvalidTokenError,ValueError,KeyError):raise HTTPException(401,'Sesi berakhir. Silakan masuk kembali.')
     with Session(engine) as db:
-        actor=db.get(User,user_id)
-        if not actor or not actor.active:raise HTTPException(401,'Sesi tidak valid.')
+        try:
+            actor=session_actor(db,token)
+        except (jwt.InvalidTokenError,ValueError,KeyError):raise HTTPException(401,'Sesi berakhir. Silakan masuk kembali.')
         scope=(actor.id,actor.role,actor.agency_id)
         return scope,scoped_revision(db,actor)
 

@@ -31,6 +31,9 @@ class User(Base):
     agency_id: Mapped[int | None] = mapped_column(ForeignKey('agencies.id'))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    phone: Mapped[str | None] = mapped_column(String(30))
+    address: Mapped[str | None] = mapped_column(String(500))
+    session_version: Mapped[int] = mapped_column(Integer, default=1, server_default='1')
 
 
 class Request(Base):
