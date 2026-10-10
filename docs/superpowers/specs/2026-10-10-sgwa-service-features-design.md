@@ -1,6 +1,6 @@
 # SGWA tahap A — profil dan fitur layanan
 
-Tanggal: 10 Oktober 2026. Status: **draft untuk review pengguna; belum diimplementasikan**.
+Tanggal: 10 Oktober 2026. Status: **cakupan disetujui untuk dilanjutkan; rencana implementasi menunggu review pengguna**.
 Dokumen induk: [roadmap penyelesaian](2026-10-10-sgwa-completion-roadmap.md).
 
 ## Tujuan dan batas
@@ -66,4 +66,4 @@ Daftar navigasi: Profil untuk semua role, Notifikasi untuk semua role, Formulir 
 
 ## Review yang diperlukan
 
-Konfirmasi pengguna diperlukan untuk cakupan tahap A, pilihan bukti cetak/PDF melalui browser, dan keputusan bahwa konflik instansi formulir terhadap ML masuk review. Setelah spec disetujui, tulis rencana implementasi per tugas dengan file, migrasi, test dan urutan eksekusi; belum ada perubahan produk dalam tahap rancangan ini.
+Pengguna meminta dilanjutkan dengan skill executing-plans. Metode eksekusi langsung di sesi ini dipertahankan. Rencana implementasi menyertakan file, migrasi, test dan urutan eksekusi; perubahan produk dimulai setelah review rencana tertulis sesuai handoff writing-plans. Training 25 kelas serta feedback admin berada pada tahap B, bukan kriteria selesai tahap A.
