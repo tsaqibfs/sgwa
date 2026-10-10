@@ -14,19 +14,15 @@ def test_training_has_group_isolation_and_dynamic_classes(tmp_path):
     train_rows = list(csv.DictReader((tmp_path/'train.csv').open(encoding='utf-8')))
     test_rows = list(csv.DictReader((tmp_path/'test.csv').open(encoding='utf-8')))
     assert not {r['group_id'] for r in train_rows} & {r['group_id'] for r in test_rows}
-    assert len(test_rows) == 40
-    assert set(r['label'] for r in test_rows) == {'dukcapil','pajak','perizinan','kesehatan'}
+    assert len(test_rows) == 500
+    from backend.app.agencies.catalog import AGENCIES
+    assert set(r['label'] for r in test_rows) == {code for code,_ in AGENCIES}
     assert 0 <= report['macro_f1'] <= 1
-    assert len(report['confusion_matrix']) == 4
+    assert len(report['confusion_matrix']) == 25
     other = tmp_path/'repeat'
     assert train(Path('ml/data/requests.csv'), other)['macro_f1'] == report['macro_f1']
-    expanded = rows + [{'text': f'pendidikan sekolah beasiswa murid {i}', 'label':'pendidikan','group_id':f'edu-{i//5}'} for i in range(50)]
-    path = tmp_path/'expanded.csv'
-    with path.open('w',encoding='utf-8',newline='') as f:
-        writer=csv.DictWriter(f,fieldnames=['text','label','group_id']);writer.writeheader();writer.writerows(expanded)
-    train(path,tmp_path/'five')
     from backend.app.ml.classifier import Classifier
-    classifier=Classifier(tmp_path/'five')
+    classifier=Classifier(tmp_path)
     assert 'pendidikan' in classifier.predict('beasiswa sekolah pendidikan').probabilities
 
 
