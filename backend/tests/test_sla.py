@@ -24,6 +24,9 @@ def test_deadline_boundary_snapshot_and_idempotent_workers(appdb):
         assert db.get(Request,item['id']).status=='escalated'
         assert db.scalar(select(func.count()).select_from(RequestEvent).where(RequestEvent.event_type=='sla_escalated'))==1
         assert escalate_overdue(db,now+timedelta(days=10))==0
+        from backend.app.models import Notification
+        rows=db.scalars(select(Notification).where(Notification.kind=='sla_escalated')).all()
+        assert len(rows)==2 and len({(r.user_id,r.event_key) for r in rows})==2
     dashboard=c.get('/api/v1/dashboard').json();assert dashboard['overdue_count']==1
     assert dashboard['average_completed_hours'] is None
 

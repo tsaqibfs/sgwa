@@ -8,6 +8,7 @@ def main():
         ["alembic", "-c", "backend/alembic.ini", "upgrade", "head"],
         ["ml.train"],
         ["backend.app.seed"],
+        ["scripts.backfill_results"],
     ]
     for command in commands:
         print(f"Initializing: {command[0]}", flush=True)

@@ -131,3 +131,25 @@ class ServiceFormVersion(Base):
     created_by: Mapped[int] = mapped_column(ForeignKey('users.id'))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     published_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class Notification(Base):
+    __tablename__ = 'notifications'
+    __table_args__ = (UniqueConstraint('user_id', 'event_key', name='uq_notification_event'),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), index=True)
+    event_key: Mapped[str] = mapped_column(String(150))
+    kind: Mapped[str] = mapped_column(String(40))
+    title: Mapped[str] = mapped_column(String(150))
+    request_id: Mapped[int | None] = mapped_column(ForeignKey('requests.id'), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class ResultDocument(Base):
+    __tablename__ = 'result_documents'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    request_id: Mapped[int] = mapped_column(ForeignKey('requests.id'), unique=True)
+    number: Mapped[str] = mapped_column(String(60), unique=True)
+    snapshot: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

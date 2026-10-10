@@ -55,6 +55,8 @@ def submit_request(session: Session,actor: User,payload: RequestCreate,classifie
     session.add(ClassificationResult(request_id=item.id,predicted_agency_code=prediction.agency_code,probabilities=prediction.probabilities,confidence=prediction.confidence,needs_review=review,model_version=prediction.model_version))
     session.add(RequestEvent(request_id=item.id,actor_id=actor.id,event_type='submitted',from_status=None,to_status=item.status,note='Instansi formulir berbeda dari prediksi ML. Perlu pemeriksaan manual.' if mismatch else 'Perlu pemeriksaan manual.' if review else 'Diteruskan berdasarkan klasifikasi ML.'))
     record(session,actor.id,'request.submitted','request',item.id,{'status':item.status,'assigned_agency_id':item.assigned_agency_id})
+    from backend.app.notifications.service import notify_request_event
+    notify_request_event(session,item,f'request:{item.id}:1:submitted','submitted',[a.id for a in route] if not review else [])
     session.commit()
     return item
 

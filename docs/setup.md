@@ -64,9 +64,12 @@ Gunakan port `3307` dan nilai database/user/password lokal dari `.env.example`. 
 .\.venv\Scripts\python.exe -m alembic -c backend/alembic.ini upgrade head
 .\.venv\Scripts\python.exe -m ml.train --dataset ml/data/requests.csv --output ml/artifacts
 .\.venv\Scripts\python.exe -m backend.app.seed
+.\.venv\Scripts\python.exe -m scripts.backfill_results
 ```
 
 Migrasi Alembic adalah sumber skema. Startup API tidak otomatis membuat tabel. Jika model hilang/rusak, endpoint submit memberi 503 dan tidak menyimpan permohonan setengah jadi.
+
+Backfill membuat bukti untuk keputusan final historis secara idempotent. Data sumber tetap dipertahankan; waktu atau catatan yang tidak tercatat ditampilkan sebagai tidak tersedia dan bukti diberi label hasil konversi. Setelah migrasi sesi lama perlu login ulang; seed tidak mengganti password akun yang sudah ada.
 
 ## Server
 
