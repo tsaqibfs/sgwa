@@ -35,3 +35,18 @@
 .nav-caret{display:none}.sidebar nav a.active .nav-caret{display:block}
 .hero-actions>a.rt-Button{padding:0 var(--space-6);font-size:var(--font-size-4);border-bottom:none}
 @media(max-width:600px){.sidebar nav a{font-size:12px}.hero-actions>a.rt-Button{font-size:15px}}
+/* Service forms share the existing workspace palette and spacing. */
+.service-builder-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:24px;margin-top:24px;align-items:start}
+.service-form-row{display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid var(--gray-5);flex-wrap:wrap}
+.service-form-row>div{flex:1;min-width:200px}
+.builder-fields,.service-fields{display:grid;gap:18px;margin:18px 0}
+.builder-field{padding:18px;border:1px solid var(--gray-6);border-radius:8px;display:grid;gap:12px;min-width:0}
+.builder-field label,.service-field{display:grid;gap:8px}
+.builder-field input:not([type=checkbox]),.service-field input:not([type=checkbox]),.service-field select,.service-field textarea{width:100%;padding:10px 12px;border:1px solid var(--gray-7);border-radius:6px;background:var(--color-panel);color:inherit;box-sizing:border-box}
+.builder-field .checkbox-label{display:flex;align-items:center;gap:8px}
+.service-actions{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap}
+.service-picker{display:grid;gap:8px;margin-bottom:24px}
+.service-answers>div{padding:12px 0;border-bottom:1px solid var(--gray-5)}
+.service-answers dt{font-size:13px;color:var(--gray-11)}
+.service-answers dd{margin:5px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:900px){.service-builder-layout{grid-template-columns:1fr}}

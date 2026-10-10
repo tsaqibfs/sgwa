@@ -9,6 +9,7 @@ import {useAuth} from '../auth/AuthProvider';
 import {PageState} from '../components/PageState';
 import {StatusBadge,statusLabel} from '../components/StatusBadge';
 import {RequestTimeline,date} from '../components/RequestTimeline';
+import {ServiceFormFields} from '../components/ServiceFormFields';
 import {WorkflowTasks} from '../components/WorkflowTasks';
 type Confirmation={status:Status;version:number;taskVersion:number};
 export function RequestDetail(){
@@ -37,6 +38,7 @@ export function RequestDetail(){
    <div className="page-heading"><div><span className="eyebrow">{item.reference}</span><h1>{item.title}</h1><p>Diajukan {date(item.created_at)} WIB</p></div><StatusBadge status={item.status}/></div>
    <div className="detail-layout"><div>
     <section className="panel"><div className="section-heading"><h2>Kebutuhan yang diajukan</h2></div><p className="request-description">{item.description}</p><div className="detail-meta"><span>Dinas utama<strong>{item.agency_name??'Menunggu pemeriksaan admin'}</strong></span><span>Pembaruan terakhir<strong>{date(item.updated_at)} WIB</strong></span></div></section>
+    {item.form&&<section className="panel"><h2>{item.form.title}</h2><p className="subtle">Jawaban formulir versi {item.form.version}</p><ServiceFormFields schema={item.form.schema} answers={item.form.answers} readOnly/></section>}
     <WorkflowTasks tasks={item.workflows??[]} ownAgency={user?.role==='staff'?user.agency_id:null}/>
     <section className="panel timeline-panel"><div className="section-heading"><h2>Riwayat permohonan</h2><Button variant="soft" onClick={result.reload}>Muat ulang status</Button></div><RequestTimeline events={item.events}/></section>
     {(actions.length>0||(user?.role==='admin'&&item.status==='escalated'))&&<section className="panel decision-panel">
