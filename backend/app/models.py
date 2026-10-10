@@ -48,6 +48,8 @@ class Request(Base):
     version: Mapped[int] = mapped_column(Integer, default=1)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    form_version_id: Mapped[int | None] = mapped_column(ForeignKey('service_form_versions.id'))
+    form_answers: Mapped[dict | None] = mapped_column(JSON)
 
 
 class ClassificationResult(Base):
@@ -106,3 +108,26 @@ class AuditLog(Base):
     entity_id: Mapped[int]
     changes: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class ServiceForm(Base):
+    __tablename__ = 'service_forms'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    agency_id: Mapped[int] = mapped_column(ForeignKey('agencies.id'), index=True)
+    title: Mapped[str] = mapped_column(String(150))
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    current_version: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class ServiceFormVersion(Base):
+    __tablename__ = 'service_form_versions'
+    __table_args__ = (UniqueConstraint('form_id', 'version', name='uq_form_version'),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    form_id: Mapped[int] = mapped_column(ForeignKey('service_forms.id'), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    title: Mapped[str] = mapped_column(String(150))
+    schema_json: Mapped[dict] = mapped_column(JSON)
+    state: Mapped[str] = mapped_column(String(20), default='draft')
+    created_by: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime)

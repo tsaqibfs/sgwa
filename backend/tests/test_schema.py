@@ -46,4 +46,4 @@ def test_initial_migration_upgrade_downgrade():
         assert ('requests' in tables) == (command == 'upgrade')
     engine = create_engine(env['DATABASE_URL'])
     assert set(inspect(engine).get_table_names()) >= {'users','agencies','requests','classification_results','request_events','audit_logs'}
-    assert len(inspect(engine).get_foreign_keys('requests')) == 2
+    assert {tuple(fk['constrained_columns']) for fk in inspect(engine).get_foreign_keys('requests')} == {('citizen_id',),('assigned_agency_id',),('form_version_id',)}
