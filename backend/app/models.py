@@ -153,3 +153,16 @@ class ResultDocument(Base):
     number: Mapped[str] = mapped_column(String(60), unique=True)
     snapshot: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class MockCheck(Base):
+    __tablename__ = 'mock_checks'
+    __table_args__ = (UniqueConstraint('actor_id', 'idempotency_key', name='uq_mock_actor_key'),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    request_id: Mapped[int] = mapped_column(ForeignKey('requests.id'), index=True)
+    actor_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    check_type: Mapped[str] = mapped_column(String(40))
+    outcome: Mapped[str] = mapped_column(String(30))
+    checked_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    payload: Mapped[dict] = mapped_column(JSON)
+    idempotency_key: Mapped[str] = mapped_column(String(100))

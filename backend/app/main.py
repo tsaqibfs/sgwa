@@ -20,6 +20,7 @@ from backend.app.profile.routes import router as profile_router
 from backend.app.forms.routes import router as forms_router
 from backend.app.notifications.routes import router as notifications_router
 from backend.app.results.routes import router as results_router
+from backend.app.mocks.routes import router as mocks_router
 
 
 @asynccontextmanager
@@ -73,6 +74,7 @@ def create_app() -> FastAPI:
     application.include_router(forms_router,prefix='/api/v1')
     application.include_router(notifications_router,prefix='/api/v1')
     application.include_router(results_router,prefix='/api/v1')
+    application.include_router(mocks_router,prefix='/api/v1')
 
     @application.get('/api/v1/health',tags=['Sistem'])
     def health():
