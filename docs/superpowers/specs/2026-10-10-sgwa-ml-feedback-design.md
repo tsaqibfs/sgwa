@@ -1,6 +1,6 @@
 # ML 25 kelas dan pembelajaran dari koreksi admin
 
-Tanggal: 10 Oktober 2026. Status: rancangan untuk review pengguna; belum diimplementasikan.
+Tanggal: 10 Oktober 2026. Status: rancangan disetujui pengguna, termasuk normalisasi singkatan dan minimum confidence 70%; belum diimplementasikan.
 
 ## Tujuan dan batas tahap
 
@@ -29,13 +29,15 @@ Training dimulai melalui perintah operator yang didokumentasikan, termasuk `dock
 
 ## Training, cross-validation dan confidence
 
+- Normalisasi deterministik dipakai sama pada generator/hash, training, ekspor feedback dan inferensi: Unicode NFKC, lowercase, whitespace, serta kamus singkatan dengan batas token (`jln` → `jalan`, `bnyk` → `banyak`, `lampmer` → `lampu merah`). Simpan teks asli. Jangan melakukan fuzzy typo correction, membuang kata negasi, atau mengganti nama lokasi. Versi kamus/normalizer disimpan dalam artefak; loader menolak versi yang tidak didukung agar pergantian kode tidak mengubah perilaku model lama diam-diam.
 - Pertahankan pipeline TF-IDF unigram/bigram dan Logistic Regression; parameter dasar `C=4`, `max_iter=1000`, seed 42. Tidak perlu pencarian hyperparameter besar pada tahap ini.
 - Jalankan 5-fold stratified group cross-validation hanya pada bagian non-holdout. TF-IDF selalu di-fit ulang pada training setiap fold. Setiap kelas harus memiliki cukup kelompok untuk seluruh fold; kekurangan kelompok merupakan error, bukan fallback ke random row split.
-- Pilih threshold dari prediksi out-of-fold, bukan holdout. Uji grid 0,40 sampai 0,95 dengan langkah 0,05. Pilih threshold dengan coverage terbesar yang memiliki precision prediksi yang diterima minimal 0,90 dan minimal 25 contoh diterima. Bila tidak ada yang memenuhi, tandai routing otomatis nonaktif; semua pengajuan masuk review manusia.
+- Pilih threshold dari prediksi out-of-fold, bukan holdout. Uji grid 0,70 sampai 0,95 dengan langkah 0,05. Pilih threshold dengan coverage terbesar yang memiliki precision prediksi yang diterima minimal 0,90 dan minimal 25 contoh diterima. Minimum 0,70 merupakan kebijakan konservatif yang disetujui pengguna, bukan jaminan peluang benar 70%. Bila tidak ada yang memenuhi, tandai routing otomatis nonaktif; semua pengajuan masuk review manusia. Confidence persis threshold boleh diterima jika seluruh syarat lain lolos.
 - Laporkan coverage dan precision accepted, sehingga threshold tinggi dengan sedikit keputusan tidak disajikan sebagai keberhasilan keseluruhan. Angka precision pada data sintetis bukan jaminan precision pada data nyata.
 - Fit model final pada seluruh bagian non-holdout, lalu evaluasi holdout sekali untuk laporan. Simpan skor setiap fold, mean/std macro-F1, per-class precision/recall/F1, confusion matrix 25x25, kesalahan, jumlah contoh/kelompok tiap split, provenance counts, seed, parameter, versi dataset, hash dataset/model dan manifest holdout.
 - `submit_request` memakai threshold dan flag auto-routing dari metadata model yang benar-benar dipakai untuk prediksi, menggantikan konstanta 0,60. Tidak ada fitur dikenal, confidence rendah, instansi nonaktif, route tidak valid atau ketidakcocokan instansi formulir tetap masuk review admin.
 - Uji teks asing/tidak dikenal, typo, ambigu dan layanan berdekatan. Tidak menjanjikan seluruh teks ambigu akan terdeteksi; confidence classifier ini belum dikalibrasi untuk populasi nyata.
+- “Perlu review admin” tetap status dan bukan kelas ke-26. Model memilih satu kelas utama; multi-dinas memakai workflow yang ada. Multi-label, label urusan lintas kabupaten, ekstraksi lokasi dan bias geografis ditunda. Tampilan tetap memakai SGWA tanpa kewajiban branding Lamongan; README/presentasi boleh menyebut Lamongan sebagai studi kasus.
 
 ## Koreksi dan verifikasi admin
 
