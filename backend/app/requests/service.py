@@ -43,7 +43,7 @@ def submit_request(session: Session,actor: User,payload: RequestCreate,classifie
     form_version=resolve_submission_form(session,payload.form_version_id,payload.form_answers) if payload.form_version_id is not None else None
     form_agency=session.get(Agency,session.get(ServiceForm,form_version.form_id).agency_id) if form_version else None
     mismatch=bool(form_agency and form_agency.code!=prediction.agency_code)
-    review=prediction.confidence<.60 or not prediction.known_features or not route
+    review=not prediction.auto_routing_enabled or prediction.confidence<prediction.threshold or not prediction.known_features or not route
     review=review or mismatch
     item=Request(reference='SGWA-'+uuid.uuid4().hex[:16].upper(),citizen_id=actor.id,title=payload.title,description=payload.description,assigned_agency_id=None if review else agency.id,status='escalated' if review else 'pending')
     session.add(item);session.flush()

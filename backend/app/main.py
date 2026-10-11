@@ -25,10 +25,7 @@ from backend.app.mocks.routes import router as mocks_router
 
 @asynccontextmanager
 async def lifespan(app):
-    try:
-        app.state.classifier=Classifier(get_settings().model_dir)
-    except ModelUnavailable:
-        app.state.classifier=None
+    app.state.ml_classifier_cache={}
     yield
 
 

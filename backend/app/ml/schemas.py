@@ -10,6 +10,8 @@ class Prediction:
     confidence: float
     known_features: bool
     model_version: str
+    threshold: float = .70
+    auto_routing_enabled: bool = True
 
 
 class FeedbackCreate(BaseModel):
@@ -35,3 +37,9 @@ class FeedbackReview(BaseModel):
     expected_revision: int=Field(ge=1)
     decision: Literal['verified','rejected']
     note: str=Field(min_length=3,max_length=1000)
+
+
+class ModelActivation(BaseModel):
+    model_config=ConfigDict(extra='forbid',str_strip_whitespace=True)
+    expected_revision: int=Field(ge=0)
+    reason: str=Field(min_length=3,max_length=1000)

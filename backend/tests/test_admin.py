@@ -13,7 +13,9 @@ def test_new_agency_and_staff_management(appdb):
     staff=client.post('/api/v1/staff',json={'name':'Petugas Sekolah','email':'sekolah@example.com','password':'PasswordDemo123!','agency_id':agency_id})
     assert staff.status_code==201
     metadata=client.get('/api/v1/ml/metadata').json()
-    assert 'pendidikan' in metadata['unsupported_agencies']
+    assert 'pendidikan' not in metadata['unsupported_agencies']
+    extra=client.post('/api/v1/agencies',json={'code':'layanan_baru','name':'Layanan tambahan'}).json()
+    assert 'layanan_baru' in client.get('/api/v1/ml/metadata').json()['unsupported_agencies']
     result=client.patch(f'/api/v1/agencies/{agency_id}',json={'active':False})
     assert result.status_code==200
     assert client.post('/api/v1/staff',json={'name':'Petugas Baru','email':'baru@example.com','password':'PasswordDemo123!','agency_id':agency_id}).status_code==422

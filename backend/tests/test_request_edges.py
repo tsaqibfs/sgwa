@@ -8,7 +8,7 @@ from backend.app.ml.schemas import Prediction
 PAYLOAD={'title':'Permohonan KTP','description':'Saya ingin mengurus KTP yang hilang beserta kartu keluarga.'}
 
 
-@pytest.mark.parametrize('confidence,known,status',[(.60,True,'pending'),(.59,True,'escalated'),(.90,False,'escalated')])
+@pytest.mark.parametrize('confidence,known,status',[(.70,True,'pending'),(.699,True,'escalated'),(.90,False,'escalated')])
 def test_threshold_routes_or_escalates(appdb,confidence,known,status):
     client,engine,app=appdb
     with Session(engine) as db:
