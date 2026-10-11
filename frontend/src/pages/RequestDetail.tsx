@@ -12,6 +12,7 @@ import {RequestTimeline,date} from '../components/RequestTimeline';
 import {ServiceFormFields} from '../components/ServiceFormFields';
 import {MockChecks} from '../components/MockChecks';
 import {WorkflowTasks} from '../components/WorkflowTasks';
+import {ClassificationFeedback} from '../components/ClassificationFeedback';
 type Confirmation={status:Status;version:number;taskVersion:number};
 export function RequestDetail(){
  const {id}=useParams(),{user,decisionDraft,setDecisionDraft}=useAuth();
@@ -37,6 +38,7 @@ export function RequestDetail(){
   <Link to="/app/requests" className="back-link"><ArrowLeft/>Daftar permohonan</Link><PageState {...result}/>
   {item&&!result.loading&&<>
    <div className="page-heading"><div><span className="eyebrow">{item.reference}</span><h1>{item.title}</h1><p>Diajukan {date(item.created_at)} WIB</p></div><StatusBadge status={item.status}/></div>
+   {user?.role==='admin'&&item.classification&&<ClassificationFeedback key={item.id} requestId={item.id}/>}
    <div className="detail-layout"><div>
     <section className="panel"><div className="section-heading"><h2>Kebutuhan yang diajukan</h2></div><p className="request-description">{item.description}</p><div className="detail-meta"><span>Dinas utama<strong>{item.agency_name??'Menunggu pemeriksaan admin'}</strong></span><span>Pembaruan terakhir<strong>{date(item.updated_at)} WIB</strong></span></div></section>
     {item.form&&<section className="panel"><h2>{item.form.title}</h2><p className="subtle">Jawaban formulir versi {item.form.version}</p><ServiceFormFields schema={item.form.schema} answers={item.form.answers} readOnly/></section>}

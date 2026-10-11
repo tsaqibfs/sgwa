@@ -1,0 +1,55 @@
+import {test,expect,type Page} from '@playwright/test';
+import {readFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {execFileSync} from 'node:child_process';
+const password=readFileSync('../.env','utf8').split(/\r?\n/).find(x=>x.startsWith('DEMO_PASSWORD='))!.slice(14);
+async function login(page:Page,email:string){await page.goto('/login');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Masuk',exact:true}).click();await expect(page).toHaveURL(/\/app/)}
+async function submit(page:Page,title:string){await page.goto('/app/requests/new');await page.getByLabel('Judul permohonan').fill(title);await page.getByLabel('Ceritakan kebutuhan Anda').fill('Jln desa berlubang dan lampmer perempatan tidak menyala, mohon diperiksa petugas.');await page.getByRole('button',{name:'Kirim permohonan'}).click();await expect(page).toHaveURL(/requests\/\d+$/);return page.url()}
+
+test('koreksi terverifikasi menjadi kandidat, aktivasi dan rollback mempertahankan prediksi historis',async({page,context})=>{
+ test.setTimeout(180000);
+ await login(page,'warga@demo.sgwa.id');const detail=await submit(page,'Jalan sintetis '+Date.now());
+ await expect(page.getByRole('heading',{name:'Koreksi klasifikasi untuk training'})).toHaveCount(0);
+ await page.getByRole('button',{name:'Keluar',exact:true}).click();await login(page,'admin@demo.sgwa.id');await page.goto(detail);
+ const before=await (await page.request.get('/api/v1/ml/versions')).json(),old=before.active_model_id;
+ const historical=await (await page.request.get('/api/v1/requests/'+detail.split('/').pop())).json();
+ await page.getByLabel('Kelas utama yang benar').selectOption('pu_bina_marga');
+ await page.getByLabel('Teks training yang sudah disunting').fill('Permukaan ruas penghubung kampung pecah dan membuat kendaraan tersandung pada lintasan aspal setempat.');
+ await page.getByLabel('Asal data',{exact:true}).selectOption('synthetic_demo');await page.getByLabel('Alasan koreksi').fill('Admin meninjau urusan pemeliharaan ruas jalan pada contoh sintetis.');
+ await page.getByRole('button',{name:'Simpan koreksi'}).click();await expect(page.locator('.ml-feedback-panel').getByRole('status')).toHaveText('Koreksi tersimpan dan menunggu verifikasi admin.');
+ await page.goto('/app/model-feedback');const row=page.locator('.ml-feedback-entry').filter({has:page.getByRole('link',{name:'Buka permohonan #'+detail.split('/').pop(),exact:true})});
+ await row.getByLabel('Catatan verifikasi').fill('Label dan teks telah ditinjau untuk demonstrasi.');await row.getByRole('button',{name:'Verifikasi koreksi'}).click();await expect(row).toContainText('verified');
+ const env={...process.env};for(const line of readFileSync('../.superpowers/e2e.env','utf8').split(/\r?\n/)){const i=line.indexOf('=');if(i>0)env[line.slice(0,i)]=line.slice(i+1)}
+ env.MODEL_DIR=resolve('../.superpowers/sdd/2026-10-10-sgwa-ml-feedback/e2e-models');
+ execFileSync(resolve('../.venv/Scripts/python.exe'),['-m','scripts.train_candidate','--actor-email','admin@demo.sgwa.id'],{cwd:resolve('..'),env,timeout:120000,stdio:'pipe'});
+ const versions=await (await page.request.get('/api/v1/ml/versions')).json();expect(versions.active_model_id).toBe(old);
+ const candidate=versions.items.find((r:{id:string;can_activate:boolean})=>r.id!==old&&r.can_activate);expect(candidate,JSON.stringify(versions)).toBeTruthy();
+ await page.goto('/app/model');const panel=page.locator('.model-versions'),entry=panel.locator('article').filter({has:page.getByRole('heading',{name:candidate.id,exact:true})});
+ await entry.getByRole('button',{name:'Lihat evaluasi'}).click();await expect(panel.getByRole('heading',{name:'Evaluasi pada holdout sintetis'})).toBeVisible();await page.getByLabel('Alasan aktivasi / rollback').fill('Evaluasi holdout dan sumber sintetis ditinjau admin.');await entry.getByRole('button',{name:'Aktifkan',exact:true}).click();await expect(panel.getByRole('status')).toHaveText('Model diaktifkan.');
+ expect((await (await page.request.get('/api/v1/ml/versions')).json()).active_model_id).toBe(candidate.id);
+ expect(await (await page.request.get('/api/v1/requests/'+detail.split('/').pop())).json()).toEqual(historical);
+ await page.getByRole('button',{name:'Keluar',exact:true}).click();await login(page,'warga@demo.sgwa.id');const next=await submit(page,'Jalan setelah aktivasi '+Date.now());expect((await (await page.request.get('/api/v1/requests/'+next.split('/').pop())).json()).classification.model_version).toBe(candidate.id);
+ await page.getByRole('button',{name:'Keluar',exact:true}).click();await login(page,'admin@demo.sgwa.id');await page.goto('/app/model');
+ const prior=page.locator('.model-versions article').filter({has:page.getByRole('heading',{name:old,exact:true})});await prior.getByRole('button',{name:'Lihat evaluasi'}).click();await expect(page.locator('.model-versions .model-notice')).toContainText(old);await page.getByLabel('Alasan aktivasi / rollback').fill('Rollback demonstrasi setelah verifikasi kandidat.');await prior.getByRole('button',{name:'Rollback',exact:true}).click();await expect(page.locator('.model-versions').getByRole('status')).toHaveText('Rollback berhasil.');
+ await entry.getByRole('button',{name:'Lihat evaluasi'}).click();await expect(panel.locator('.model-notice')).toContainText(candidate.id);await page.getByLabel('Alasan aktivasi / rollback').fill('Draft admin dipertahankan saat konflik aktivasi.');
+ const current=await (await page.request.get('/api/v1/ml/versions')).json(),csrf=(await context.cookies()).find(c=>c.name==='sgwa_csrf')!.value;
+ expect((await page.request.post('/api/v1/ml/versions/'+candidate.id+'/activate',{headers:{Origin:'http://127.0.0.1:5173','X-CSRF-Token':csrf},data:{expected_revision:current.revision,reason:'Admin lain mengaktifkan kandidat pada tes konflik.'}})).status()).toBe(200);
+ await entry.getByRole('button',{name:'Aktifkan',exact:true}).click();await expect(panel.getByRole('alert')).toContainText('Model aktif telah berubah');await expect(page.getByLabel('Alasan aktivasi / rollback')).toHaveValue('Draft admin dipertahankan saat konflik aktivasi.');
+ await prior.getByRole('button',{name:'Lihat evaluasi'}).click();await expect(panel.locator('.model-notice')).toContainText(old);await prior.getByRole('button',{name:'Rollback',exact:true}).click();await expect(panel.getByRole('status')).toHaveText('Rollback berhasil.');
+ for(const route of ['/app/model','/app/model-feedback'])for(const width of [375,768,1366]){await page.setViewportSize({width,height:900});await page.goto(route);await expect(page.locator('h1')).toBeVisible();await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`../.superpowers/sdd/2026-10-10-sgwa-ml-feedback/${route.endsWith('feedback')?'feedback':'model'}-${width}.png`,fullPage:true})}
+ await page.getByRole('button',{name:'Keluar',exact:true}).click();await login(page,'dukcapil@demo.sgwa.id');await page.goto('/app/model-feedback');await expect(page.getByRole('heading',{name:'Feedback klasifikasi'})).toHaveCount(0);expect((await page.request.get('/api/v1/ml/feedback')).status()).toBe(403);
+});
+
+test('koreksi revisi pada keputusan final mempertahankan hasil dan draft saat konflik',async({page,browser,context})=>{
+ test.setTimeout(90000);await login(page,'warga@demo.sgwa.id');const detail=await submit(page,'Keputusan final untuk feedback '+Date.now()),id=detail.split('/').pop();
+ await page.getByRole('button',{name:'Keluar',exact:true}).click();await login(page,'admin@demo.sgwa.id');await page.goto(detail);await page.getByLabel('Catatan keputusan').fill('Permohonan sintetis ditolak untuk menguji koreksi setelah keputusan final.');await page.getByRole('button',{name:'Ditolak',exact:true}).click();await page.getByRole('button',{name:'Konfirmasi',exact:true}).click();await expect(page.getByRole('link',{name:'Lihat bukti hasil'})).toBeVisible();
+ const historical=await (await page.request.get('/api/v1/requests/'+id)).json(),result=await (await page.request.get('/api/v1/requests/'+id+'/result')).json();
+ await page.getByLabel('Kelas utama yang benar').selectOption('pu_bina_marga');await page.getByLabel('Teks training yang sudah disunting').fill('Jalan kampung pecah perlu pemeliharaan ruas oleh petugas.');await page.getByLabel('Asal data',{exact:true}).selectOption('synthetic_demo');await page.getByLabel('Alasan koreksi').fill('Label ruas jalan telah ditinjau.');await page.getByRole('button',{name:'Simpan koreksi'}).click();await expect(page.locator('.ml-feedback-panel').getByRole('status')).toBeVisible();
+ await page.reload();await expect(page.getByText('Revisi 1 · pending · pu_bina_marga')).toBeVisible();
+ await page.getByLabel('Kelas utama yang benar').selectOption('pu_bina_marga');await page.getByLabel('Teks training yang sudah disunting').fill('Draft panjang koreksi ruas jalan yang harus tetap tersimpan saat konflik.');await page.getByLabel('Asal data',{exact:true}).selectOption('synthetic_demo');await page.getByLabel('Alasan koreksi').fill('Draft revisi kedua admin.');
+ const csrf=(await context.cookies()).find(c=>c.name==='sgwa_csrf')!.value;
+ const response=await page.request.post('/api/v1/ml/requests/'+id+'/feedback',{headers:{Origin:'http://127.0.0.1:5173','X-CSRF-Token':csrf},data:{expected_revision:1,training_text:'Jalan penghubung kampung rusak membutuhkan perbaikan ruas.',corrected_code:'pu_bina_marga',provenance:'synthetic_demo',reason:'Admin lain menyimpan revisi terkini.',idempotency_key:crypto.randomUUID()}});expect(response.status()).toBe(201);
+ await page.getByRole('button',{name:'Simpan koreksi'}).click();await expect(page.locator('.ml-feedback-panel').getByRole('alert')).toBeVisible();await expect(page.getByLabel('Teks training yang sudah disunting')).toHaveValue('Draft panjang koreksi ruas jalan yang harus tetap tersimpan saat konflik.');await expect(page.getByText('Revisi 2 · pending · pu_bina_marga')).toBeVisible();await page.getByRole('button',{name:'Saya sudah meninjau revisi terbaru'}).click();await page.getByRole('button',{name:'Simpan koreksi'}).click();await expect(page.getByText('Revisi 3 · pending · pu_bina_marga')).toBeVisible();
+ expect(await (await page.request.get('/api/v1/requests/'+id)).json()).toEqual(historical);expect(await (await page.request.get('/api/v1/requests/'+id+'/result')).json()).toEqual(result);
+ const citizen=await browser.newContext({baseURL:'http://127.0.0.1:5173'}),other=await citizen.newPage();try{await login(other,'warga@demo.sgwa.id');expect((await other.request.get('/api/v1/ml/feedback')).status()).toBe(403);await other.goto(detail);await expect(other.getByRole('heading',{name:'Koreksi klasifikasi untuk training'})).toHaveCount(0)}finally{await citizen.close()}
+});

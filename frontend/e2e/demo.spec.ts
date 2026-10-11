@@ -1,5 +1,6 @@
 import {test,expect,type Page} from '@playwright/test';
 import {readFileSync} from 'node:fs';
+import {manualRoute} from './manual-routing';
 const password=readFileSync('../.env','utf8').split(/\r?\n/).find(line=>line.startsWith('DEMO_PASSWORD='))?.slice('DEMO_PASSWORD='.length);
 if(!password)throw new Error('DEMO_PASSWORD is required in .env');
 test('navigasi keyboard langsung menuju konten dan halaman tidak ditemukan',async({page})=>{
@@ -13,12 +14,12 @@ test('navigasi keyboard langsung menuju konten dan halaman tidak ditemukan',asyn
 async function login(page:Page,email:string){if(!page.url().endsWith('/login'))await page.goto('/login');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password!);await page.getByRole('button',{name:'Masuk',exact:true}).click();await expect(page).toHaveURL(/\/app(?:\/|$)/)}
 async function logout(page:Page){await page.getByRole('button',{name:'Keluar',exact:true}).click();await expect(page).toHaveURL(/\/login$/)}
 
-test('pengajuan warga diproses staf dan hasil muncul di timeline',async({page})=>{
+test('pengajuan warga diproses staf dan hasil muncul di timeline',async({page,browser})=>{
  await login(page,'warga@demo.sgwa.id');await page.goto('/app/requests/new');
  const title='Pengurusan KTP demo '+Date.now();
  await page.getByLabel('Judul permohonan').fill(title);await page.getByLabel('Ceritakan kebutuhan Anda').fill('Saya ingin mengurus KTP elektronik yang hilang dan kartu keluarga penduduk di Dukcapil.');
  await page.getByRole('button',{name:'Kirim permohonan'}).click();await expect(page.getByRole('heading',{name:title})).toBeVisible();
- const detail=page.url();await expect(page.getByText('Menunggu',{exact:true}).first()).toBeVisible();
+ const detail=page.url();await manualRoute(browser,detail,'DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL');await page.reload();await expect(page.getByText('Menunggu',{exact:true}).first()).toBeVisible();
  await logout(page);await login(page,'dukcapil@demo.sgwa.id');await page.goto(detail);
  await page.getByRole('button',{name:'Mulai proses'}).click();await expect(page.getByText('Diproses',{exact:true}).first()).toBeVisible();
  await page.getByLabel('Catatan keputusan').fill('Dokumen lengkap dan tervalidasi pada demonstrasi.');await page.getByRole('button',{name:'Disetujui',exact:true}).click();await page.getByRole('button',{name:'Konfirmasi',exact:true}).click();
@@ -60,12 +61,12 @@ test('draft bertahan ketika sesi berakhir dan warga login ulang',async({page,con
  await expect(page.getByLabel('Judul permohonan')).toHaveValue('Draft KTP belum dikirim');
 });
 
-test('catatan keputusan staf bertahan saat sesi berakhir',async({page,context})=>{
+test('catatan keputusan staf bertahan saat sesi berakhir',async({page,context,browser})=>{
  await login(page,'warga@demo.sgwa.id');await page.goto('/app/requests/new');
  const title='KTP review catatan '+Date.now();
  await page.getByLabel('Judul permohonan').fill(title);await page.getByLabel('Ceritakan kebutuhan Anda').fill('Saya ingin mengurus KTP elektronik yang hilang dan kartu keluarga di Dukcapil.');
  await page.getByRole('button',{name:'Kirim permohonan'}).click();await expect(page).toHaveURL(/requests\/\d+$/);const detail=page.url();
- await logout(page);await login(page,'dukcapil@demo.sgwa.id');await page.goto(detail);await page.getByRole('button',{name:'Mulai proses'}).click();
+ await manualRoute(browser,detail,'DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL');await logout(page);await login(page,'dukcapil@demo.sgwa.id');await page.goto(detail);await page.getByRole('button',{name:'Mulai proses'}).click();
  const note='Catatan panjang hasil verifikasi dokumen warga yang harus tetap ada setelah login ulang.';
  await page.getByLabel('Catatan keputusan').fill(note);await page.getByRole('button',{name:'Disetujui',exact:true}).click();
  await context.clearCookies();await page.getByRole('button',{name:'Konfirmasi',exact:true}).click();await expect(page).toHaveURL(/\/login$/);
@@ -77,7 +78,7 @@ test('warga melihat progres dinas otomatis dan draft tetap utuh',async({page,bro
  await login(page,'warga@demo.sgwa.id');await page.goto('/app/requests/new');
  await page.getByLabel('Judul permohonan').fill('KTP live '+Date.now());await page.getByLabel('Ceritakan kebutuhan Anda').fill('Saya ingin mengurus KTP elektronik dan kartu keluarga penduduk di Dukcapil.');
  await page.getByRole('button',{name:'Kirim permohonan'}).click();await expect(page).toHaveURL(/requests\/\d+$/);const detail=page.url();
- await expect(page.getByRole('heading',{name:'Progres tiap dinas'})).toBeVisible();
+ await manualRoute(browser,detail,'DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL');await page.reload();await expect(page.getByRole('heading',{name:'Progres tiap dinas'})).toBeVisible();
  const ctx=await browser.newContext({baseURL:'http://127.0.0.1:5173'}),staff=await ctx.newPage();
  try{
   await login(staff,'dukcapil@demo.sgwa.id');await staff.goto(detail);await staff.getByRole('button',{name:'Mulai proses'}).click();
