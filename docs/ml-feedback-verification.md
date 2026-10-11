@@ -49,3 +49,27 @@ Lihat [setup](setup.md), [Docker](docker.md) dan [operasi ML](ml.md). E2E di lap
 Helper E2E resmi diuji pada schema baru: persiapan dua kali mempertahankan model, dua alur browser ML lolos1,2menit. API EnvKit dikembalikan ke8000; HTTP smoke ulang lolos dan worker melaporkan0 eskalasi SLA.
 
 Laporan/CSV, analytics prediktif, coverage report, CI, TLS/rate limiting dan load test tetap backlog. Laporan ini tidak menyatakan semua scope PRD selesai.
+
+
+## Review akhir
+
+Satu reviewer fresh-context gpt-6-astra memeriksa seluruh range `7ca4154..cca7d6b` secara read-only. Tidak ada Critical/Important; tiga Minor diregrade tetap Minor dan ditunda sesuai executing-plans. Reviewer tidak mengulang tes: bukti eksekusi berasal dari hasil author di atas. Tidak ada merge/push.
+
+### Keputusan eksekusi beserta biaya/risiko
+
+- Ruling: Preserve approved feature checkout rather than create worktree — user continues established checkout and approved Global Constraints — cost: local edits share checkout; clean status verified.
+- Ruling: Use Python bookkeeping on Windows instead of Bash skill helpers — existing environment uses PowerShell — cost: ledger parity requires explicit checking.
+- Task1: Ruling: Commit dataset and trainer together with Task2 — expanded CSV causes two existing training tests to fail (extra metadata columns) — cost: one less granular commit; regression retained and fixed before completion.
+- Tasks3-4: Ruling: Deliver schema and feedback API together after89-test regression — both participate in new transaction tests — cost: less granular commit. Dedicated sgwa_test_ml_feedback schema enables independent tests without touching baseline test schema.
+- Task6: Ruling: Workflow tests inject explicit routing-enabled inference fixture while registry tests use genuine model — OOF policy correctly disables automatic routing due only2 accepted examples, so staff workflow requires controlled accepted classification — cost: workflow tests do not measure real routing coverage; ML/runtime tests do.
+- Tasks5-6: Ruling: Commit candidate registry and activation/runtime together after105-test regression — both share registry.py and integrity checks — cost: less granular history; targeted tests retain separation.
+- Task8: Ruling: Add public isolated E2E environment/helpers beyond the private fixture paths — new ML browser training must be reproducible on classmates laptops and never target application data — cost: one more environment/setup path to maintain; guards reject non-test schema and application artifact directory.
+- Final: Ruling: Accept synthetic generalization limitation and unmet0.85 target — approved scope requires truthful scores and automatic routing disabled when validation insufficient — cost: target quality and real-world accuracy remain unproven.
+- Final: Ruling: Keep online learning/multi-label/NER/reporting/CI/TLS/load testing deferred — current approved plan is ML25 plus verified feedback and manual activation — cost: broader PRD scope remains incomplete.
+- Final: Ruling: Retain trusted-local-joblib boundary — no artifact upload and only operator-local training is supported — cost: malicious operator-authored pickle can execute code; file integrity is not an adversarial sandbox.
+
+### Minor ditunda
+
+- Successful repeat training leaves redundant staging directories (scripts/train_candidate.py:38-45).
+- Bootstrap preservation test reuses same content ID instead of a distinct admin-selected model (backend/tests/test_ml_bootstrap.py:22-30); runtime preserves non-null pointer before any training.
+- UI Asal training provenance counts include holdout rows; training count separately remains2000 (ml/train.py:89).
