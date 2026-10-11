@@ -9,6 +9,8 @@ COPY backend ./backend
 COPY ml ./ml
 COPY scripts/container_init.py ./scripts/container_init.py
 COPY scripts/backfill_results.py ./scripts/backfill_results.py
+COPY scripts/bootstrap_ml.py ./scripts/bootstrap_ml.py
+COPY scripts/train_candidate.py ./scripts/train_candidate.py
 RUN mkdir -p ml/artifacts && chown -R app:app ml/artifacts
 USER app
 EXPOSE 8000

@@ -6,13 +6,13 @@ from backend.tests.safety import validated_test_url
 
 
 @pytest.mark.parametrize('historical',[False,True])
-def test_ml_migration_empty_and_populated_0007(historical):
+def test_ml_migration_empty_and_populated_0007(historical,tmp_path):
     from backend.app.models import Base
     engine=create_engine(validated_test_url(os.environ['TEST_DATABASE_URL']))
     Base.metadata.drop_all(engine)
     with engine.begin() as db:db.execute(text('DROP TABLE IF EXISTS alembic_version'))
     env={**os.environ,'DATABASE_URL':str(engine.url.render_as_string(hide_password=False)),
-         'JWT_SECRET':'migration-test-secret-at-least-32-characters'}
+         'JWT_SECRET':'migration-test-secret-at-least-32-characters','MODEL_DIR':str(tmp_path/'models')}
     def migrate(direction,revision):
         result=subprocess.run([os.sys.executable,'-m','alembic','-c','backend/alembic.ini',direction,revision],env=env,capture_output=True,text=True)
         assert result.returncode==0,result.stderr
@@ -35,6 +35,13 @@ def test_ml_migration_empty_and_populated_0007(historical):
             assert tuple(db.execute(text('SELECT id,model_version_id,revision FROM ml_active_model')).one())==(1,None,0)
             for table,rows in before.items():
                 assert db.execute(text(f'SELECT * FROM {table} ORDER BY id')).all()==rows
+        if historical:
+            for _ in range(2):
+                result=subprocess.run([os.sys.executable,'-m','scripts.bootstrap_ml'],env=env,capture_output=True,text=True)
+                assert result.returncode==0,result.stderr
+            with engine.connect() as db:
+                assert db.scalar(text('SELECT revision FROM ml_active_model WHERE id=1'))==1
+                for table,rows in before.items():assert db.execute(text(f'SELECT * FROM {table} ORDER BY id')).all()==rows
         migrate('downgrade','0007')
         assert 'ml_feedback' not in inspect(engine).get_table_names()
         with engine.connect() as db:

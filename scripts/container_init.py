@@ -6,8 +6,8 @@ import sys
 def main():
     commands = [
         ["alembic", "-c", "backend/alembic.ini", "upgrade", "head"],
-        ["ml.train"],
         ["backend.app.seed"],
+        ["scripts.bootstrap_ml"],
         ["scripts.backfill_results"],
     ]
     for command in commands:

@@ -62,8 +62,8 @@ Gunakan port `3307` dan nilai database/user/password lokal dari `.env.example`. 
 
 ```powershell
 .\.venv\Scripts\python.exe -m alembic -c backend/alembic.ini upgrade head
-.\.venv\Scripts\python.exe -m ml.train --dataset ml/data/requests.csv --output ml/artifacts
 .\.venv\Scripts\python.exe -m backend.app.seed
+.\.venv\Scripts\python.exe -m scripts.bootstrap_ml
 .\.venv\Scripts\python.exe -m scripts.backfill_results
 ```
 
@@ -99,10 +99,23 @@ Test backend memuat TEST_DATABASE_URL dari `.env` tanpa mencetak kredensial. Tan
 
 ## Troubleshooting
 
+### E2E terisolasi di laptop baru
+
+Tes browser menambah permohonan dan instansi; gunakan schema dan model khusus test. Buat database `sgwa_test_e2e` di MySQL dan beri akun aplikasi akses hanya ke schema test tersebut, lalu salin `.env.e2e.example` menjadi `.env.e2e`. Isi URL, JWT secret test, dan `DEMO_PASSWORD` yang sama dengan `.env` (dibaca tes browser). Jangan commit environment.
+
+Hentikan API biasa di port8000; frontend Vite tetap di5173. Dari root:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.prepare_e2e
+.\.venv\Scripts\python.exe -m scripts.run_e2e_server
+```
+
+Di terminal lain jalankan `npm.cmd --prefix frontend run e2e`. Helper menolak nama schema di luar awalan `sgwa_test` dan model di luar subdirektori `.superpowers`. Tidak mereset schema; fixture sintetis tetap hanya di schema E2E. Setelah tes, hentikan server E2E dan jalankan kembali API biasa agar frontend memakai data aplikasi.
+
 | Gejala | Pemeriksaan |
 | --- | --- |
 | 503 database | Layanan EnvKit/Compose aktif, URL/port benar, user punya akses |
-| 503 model | Jalankan training dan restart backend |
+| 503 model | Pulihkan artefak aktif/rollback; instalasi pertama gunakan bootstrap setelah migrasi dan seed |
 | Login gagal | Email akun demo benar; seed pernah berjalan; password akun lama belum berubah |
 | 403 origin/CSRF | Buka origin yang diizinkan, muat ulang tab, jangan POST langsung tanpa bootstrap CSRF |
 | 409 saat keputusan | Permohonan telah berubah; muat ulang, baca perubahan, putuskan ulang |
@@ -117,3 +130,8 @@ Test backend memuat TEST_DATABASE_URL dari `.env` tanpa mencetak kredensial. Tan
 Worker memeriksa tugas setiap 60 detik. Untuk satu pemeriksaan gunakan `--once`. Tenggat dihitung dalam hari kalender UTC sejak tugas dibuat; UI menampilkan WIB. Perubahan SLA dinas berlaku untuk tugas baru. Backup aplikasi sebelum forward migration; jangan jalankan downgrade/drop_all pada database aplikasi.
 
 Untuk menghapus fixture Pendidikan yang dibuat tes browser: `python -m scripts.cleanup_education_dummy`. Script memvalidasi kode/nama dan pengajuan fixture; hubungan dengan data lain membatalkan transaksi. Riwayat audit dipertahankan.
+
+
+## Pembaruan ML 25 kelas
+
+Migrasi `0008`. Setup pertama: migrasi → seed → bootstrap → backfill. Startup ulang mempertahankan versi aktif. Gunakan [panduan ML](ml.md) untuk koreksi, verifikasi, training kandidat, aktivasi dan rollback. Pengajuan baseline saat ini memerlukan review manual admin; confidence minimal70% saja belum cukup untuk mengaktifkan routing otomatis.

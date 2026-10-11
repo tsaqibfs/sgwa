@@ -25,13 +25,13 @@ Build pertama memerlukan internet dan dapat memakan beberapa menit. Jika `docker
 $env:PATH = 'C:\Program Files\Docker\Docker\resources\bin;' + $env:PATH
 ```
 
-Urutan startup: MySQL sehat → `init` menjalankan Alembic, training ML, seed, dan backfill bukti historis → API dan worker → frontend. Status `init` **Exited (0)** adalah normal. Tabel dibuat otomatis; tidak perlu mengimpor SQL manual. Seed menyediakan 25 instansi resmi dan lima akun: `warga@demo.sgwa.id`, `admin@demo.sgwa.id`, `dukcapil@demo.sgwa.id`, `perizinan@demo.sgwa.id`, `kesehatan@demo.sgwa.id`. Semua akun baru memakai `DEMO_PASSWORD`.
+Urutan startup: MySQL sehat → `init` menjalankan Alembic, seed, bootstrap model25, dan backfill bukti historis → API dan worker → frontend. Status `init` **Exited (0)** adalah normal. Tabel dibuat otomatis; tidak perlu mengimpor SQL manual. Seed menyediakan 25 instansi resmi dan lima akun: `warga@demo.sgwa.id`, `admin@demo.sgwa.id`, `dukcapil@demo.sgwa.id`, `perizinan@demo.sgwa.id`, `kesehatan@demo.sgwa.id`. Semua akun baru memakai `DEMO_PASSWORD`.
 
 - Frontend: http://localhost:8080
 - Swagger API: http://localhost:8001/docs
 - Health API: http://localhost:8001/api/v1/health
 
-Browser mengakses API melalui `/api/` pada frontend. Nginx mempertahankan cookie, meneruskan SSE tanpa buffering, dan memperbarui alamat backend melalui DNS Docker ketika container dibuat ulang. MySQL tidak membuka port host. Model tetap memakai empat kelas yang dijelaskan di README; katalog 25 instansi tidak memperluas kelas ML secara otomatis.
+Browser mengakses API melalui `/api/` pada frontend. Nginx mempertahankan cookie, meneruskan SSE tanpa buffering, dan memperbarui alamat backend melalui DNS Docker ketika container dibuat ulang. MySQL tidak membuka port host. Model memiliki25 kelas; baseline sintetis saat ini menonaktifkan routing otomatis dan membutuhkan review admin. Lihat [panduan ML](ml.md).
 
 ## Operasional dan pembaruan
 
@@ -46,7 +46,7 @@ docker compose --env-file .env.docker -f compose.docker.yaml down
 docker compose --env-file .env.docker -f compose.docker.yaml up --build -d --wait --wait-timeout 240
 ```
 
-Named volume `sgwa-demo-docker_mysql_data` dan `sgwa-demo-docker_model_data` terpisah dari database EnvKit serta Compose MySQL lama (`compose.yaml`). `init` dapat dijalankan ulang: migrasi ke versi terbaru, model dilatih ulang, katalog di-upsert, akun yang ada tidak diganti passwordnya. Startup tidak menghapus data demo/permohonan yang sudah tersimpan.
+Named volume `sgwa-demo-docker_mysql_data` dan `sgwa-demo-docker_model_data` terpisah dari database EnvKit serta Compose MySQL lama (`compose.yaml`). `init` dapat dijalankan ulang: migrasi ke versi terbaru, model aktif divalidasi dan dipertahankan tanpa training ulang, katalog di-upsert, akun yang ada tidak diganti passwordnya. Startup tidak menghapus data demo/permohonan yang sudah tersimpan.
 
 Jangan menambahkan `-v` pada `down` kecuali memang ingin **menghapus seluruh database dan model container**. Simpan `.env.docker` selama volume digunakan. Mengubah password MySQL di file environment tidak mengganti password pada database yang sudah diinisialisasi; perubahan akun harus dilakukan di MySQL. Mengubah `DEMO_PASSWORD` juga tidak mengubah password akun yang sudah ada.
 
@@ -63,3 +63,7 @@ Build backend Python 3.12 dan frontend berhasil. MySQL Community 8.4.11, migrasi
 ## Fitur layanan — 10 Oktober 2026
 
 Migrasi terbaru `0007` menambahkan profil/session version, formulir/versi, notifikasi, bukti hasil dan mock checks. Init menyertakan script backfill dan menjalankannya setelah seed; volume lama diperbarui secara additive, password akun lama tetap. Login ulang sesudah migrasi. Bukti tetap untuk demonstrasi akademik, dengan cetak/simpan PDF melalui browser. Lihat [verifikasi fitur layanan](service-features-verification.md) untuk hasil build, pengujian dan batas ML yang masih empat kelas.
+
+## Pembaruan ML — 11 Oktober 2026
+
+Migrasi terbaru sekarang `0008`, model25kelas dan normalisasi tersedia. Init pertama mengarsipkan artefak empat kelas dan memasang versi awal; startup berikutnya mempertahankan versi pilihan admin, tanpa training ulang. Kandidat batch perlu review dan aktivasi manual. Startup ulang, registry25kelas, login/CSRF dan SSE melalui Nginx telah diuji. Baseline holdout sintetis macro-F1 0,546; routing otomatis nonaktif dan pengajuan memerlukan review admin. Panduan training/aktivasi/rollback: [ML](ml.md); bukti: [verifikasi ML](ml-feedback-verification.md).

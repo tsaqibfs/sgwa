@@ -1,5 +1,5 @@
 import {test,expect,type Page} from '@playwright/test';
-import {readFileSync} from 'node:fs';
+import {readFileSync,existsSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {execFileSync} from 'node:child_process';
 const password=readFileSync('../.env','utf8').split(/\r?\n/).find(x=>x.startsWith('DEMO_PASSWORD='))!.slice(14);
@@ -19,8 +19,9 @@ test('koreksi terverifikasi menjadi kandidat, aktivasi dan rollback mempertahank
  await page.getByRole('button',{name:'Simpan koreksi'}).click();await expect(page.locator('.ml-feedback-panel').getByRole('status')).toHaveText('Koreksi tersimpan dan menunggu verifikasi admin.');
  await page.goto('/app/model-feedback');const row=page.locator('.ml-feedback-entry').filter({has:page.getByRole('link',{name:'Buka permohonan #'+detail.split('/').pop(),exact:true})});
  await row.getByLabel('Catatan verifikasi').fill('Label dan teks telah ditinjau untuk demonstrasi.');await row.getByRole('button',{name:'Verifikasi koreksi'}).click();await expect(row).toContainText('verified');
- const env={...process.env};for(const line of readFileSync('../.superpowers/e2e.env','utf8').split(/\r?\n/)){const i=line.indexOf('=');if(i>0)env[line.slice(0,i)]=line.slice(i+1)}
- env.MODEL_DIR=resolve('../.superpowers/sdd/2026-10-10-sgwa-ml-feedback/e2e-models');
+ const env={...process.env},envFile=process.env.SGWA_E2E_ENV??(existsSync('../.env.e2e')?'../.env.e2e':'../.superpowers/e2e.env');for(const line of readFileSync(envFile,'utf8').split(/\r?\n/)){const i=line.indexOf('=');if(i>0&&!line.startsWith('#'))env[line.slice(0,i)]=line.slice(i+1)}
+ const database=new URL(env.DATABASE_URL!);if(!database.pathname.slice(1).startsWith('sgwa_test')&&database.pathname!=='/sgwa_demo_service_e2e')throw new Error('Training E2E hanya boleh memakai schema test terpisah.');
+ env.MODEL_DIR=resolve('..',env.MODEL_DIR??'.superpowers/sdd/2026-10-10-sgwa-ml-feedback/e2e-models');if(!env.MODEL_DIR.startsWith(resolve('../.superpowers')+'/')&&!env.MODEL_DIR.startsWith(resolve('../.superpowers')+'\\'))throw new Error('Artefak E2E harus terpisah dalam .superpowers');
  execFileSync(resolve('../.venv/Scripts/python.exe'),['-m','scripts.train_candidate','--actor-email','admin@demo.sgwa.id'],{cwd:resolve('..'),env,timeout:120000,stdio:'pipe'});
  const versions=await (await page.request.get('/api/v1/ml/versions')).json();expect(versions.active_model_id).toBe(old);
  const candidate=versions.items.find((r:{id:string;can_activate:boolean})=>r.id!==old&&r.can_activate);expect(candidate,JSON.stringify(versions)).toBeTruthy();

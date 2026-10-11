@@ -29,7 +29,7 @@ def register_candidate(db,directory: Path,actor_id: int|None) -> MLModelVersion:
     manifest=json.loads((directory/'manifest.json').read_text(encoding='utf-8'))['feedback']
     existing=db.get(MLModelVersion,info['model_version'])
     if existing:
-        if existing.state!='ready' or existing.metadata_json!=info or existing.feedback_manifest!=manifest:
+        if existing.state!='ready' or not json_equivalent(existing.metadata_json,info) or existing.feedback_manifest!=manifest:
             raise ValueError('Versi model sudah terdaftar dengan artefak berbeda')
         return existing
     row=MLModelVersion(id=info['model_version'],state='ready',relative_path='versions/'+info['model_version'],model_hash=info['model_hash'],

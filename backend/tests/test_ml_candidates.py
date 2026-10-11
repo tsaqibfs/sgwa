@@ -58,11 +58,13 @@ def test_registry_tolerates_mysql_json_float_roundtrip_but_rejects_changed_score
     _,engine,_=appdb;get_settings().model_dir=tmp_path
     stage=tmp_path/'stage';report=train(Path('ml/data/requests.csv'),stage,holdout_path=Path('ml/data/holdout.json'))
     report['cross_validation']['folds'][1]['macro_f1']=0.45417268445839876
+    report['routing_policy']['accepted_precision']=0.45417268445839876
     evaluation=stage/'evaluation.json';evaluation.write_text(json.dumps(report),encoding='utf-8')
-    metadata=stage/'metadata.json';info=json.loads(metadata.read_text());info['artifact_hashes']['evaluation.json']=hashlib.sha256(evaluation.read_bytes()).hexdigest();metadata.write_text(json.dumps(info),encoding='utf-8')
+    metadata=stage/'metadata.json';info=json.loads(metadata.read_text());info['routing_policy']=report['routing_policy'];info['artifact_hashes']['evaluation.json']=hashlib.sha256(evaluation.read_bytes()).hexdigest();metadata.write_text(json.dumps(info),encoding='utf-8')
     directory=tmp_path/'versions'/report['model_version'];directory.parent.mkdir();stage.rename(directory)
     with Session(engine) as db:
         row=register_candidate(db,directory,None);db.commit();db.expire_all()
         validated_version(db.get(MLModelVersion,row.id))
+        assert register_candidate(db,directory,None).id==row.id
         changed=json.loads(json.dumps(row.evaluation_json));changed['macro_f1']+=0.001;row.evaluation_json=changed;db.commit()
         with pytest.raises(ValueError,match='Registry'):validated_version(row)

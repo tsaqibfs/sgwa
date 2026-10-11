@@ -53,3 +53,8 @@ Detail TLS/limiter/load test dan target CI diselesaikan pada spec tahap C berdas
 Tidak ada reset database otomatis. Perubahan skema memakai Alembic dan diuji pada database kosong serta salinan database versi sebelumnya. Native/EnvKit dan Docker tetap punya environment serta volume terpisah. Seed tidak membuat permohonan demo massal. Setiap tahap memperbarui README, skenario demo, status PRD dan laporan verifikasi sesuai hasil aktual.
 
 Seluruh scope baru dianggap selesai setelah ketiga tahap lolos verifikasi dan keterbatasan sintetis tercantum pada produk/laporan. Roadmap atau spec yang disetujui bukan bukti fitur sudah tersedia.
+
+
+## Status implementasi — 11 Oktober 2026
+
+Tahap A tersedia. Bagian ML tahap B tersedia:25 kelas, cross-validation, normalisasi, feedback terverifikasi, kandidat batch, aktivasi/rollback dan bootstrap aman. Holdout sintetis macro-F1 0,546; routing otomatis nonaktif. Laporan/CSV dan analytics prediktif tahap B, serta tahap C, masih backlog. Lihat docs/ml-feedback-verification.md untuk bukti terbaru; uraian baseline di atas adalah konteks rancangan historis.
