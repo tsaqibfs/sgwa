@@ -32,7 +32,7 @@ Analytics prediktif, laporan coverage, CI, TLS/rate limiting dan load test tetap
 
 ## Keputusan pelaksanaan
 
-Berikut keputusan dari ledger fase ini, dengan biaya bila salah; review akhir ditambahkan setelah selesai.
+Berikut seluruh keputusan dari ledger fase ini, dengan biaya bila salah.
 
 ```text
 Ruling: Keep approved feature checkout — existing clean feat/sgwa-demo and approved plan preserve it — cost: changes share the checkout.
@@ -43,4 +43,14 @@ Task4: Ruling: Move existing E2E screenshots from deleted older plan namespace t
 Task5: Ruling: Docker first pre-rebuild snapshot unavailable — initial MySQL service was stopped and no-deps snapshot failed DNS; rebuild had already begun before its final output was read — validate current state then compare second startup — cost: cannot prove full Docker row identity before first rebuild; native pre-upgrade snapshot/backup remain available. No application migration was introduced.
 Task5: Ruling: Reuse existing get_current_user/require_role inside report RR dependency instead of opening separate auth and report connections — single-pool test reproduced503 due self-exhaustion — cost: report-specific dependency must preserve auth behavior; old endpoints/isolation unchanged. RED single-connection test observed10.06s.
 Task5: Ruling: Stage Docker startup with worker stopped until row-hash comparison instead of single all-service up — avoids SLA writes while measuring preservation — cost: deployment verification uses two startup steps; worker resumed after comparison.
+Final: Ruling: Existing catalog-name seed and result backfill remain outside reports changes — they predate this branch; preservation evidence covers observed baseline only, not every possible database — cost: a different preexisting database may change during ordinary init; no universal byte-identity guarantee.
+Final: Ruling: Reviewer did not independently rerun private deployment snapshots or test suites — executor read successful actual outputs and hash comparisons; reviewer inspected code/tests/recorded evidence read-only — cost: verification evidence has one execution witness, not an independent rerun.
 ```
+
+## Review akhir
+
+Satu reviewer fresh-context gpt-6-astra memeriksa perubahan f5f00f2..0a75004 secara read-only, spec, plan, test dan lima Review Focus. Hasil: Critical 0, Important 0, Minor 0; tidak diperlukan fix pass. Reviewer tidak mengulang tes atau mengakses snapshot privat. Tidak ada minor yang ditunda dalam fase laporan ini.
+
+Seed nama katalog dan backfill bukti hasil merupakan perilaku startup yang sudah ada sebelum fase laporan. Hasil snapshot berlaku pada database yang diamati; bukan jaminan bahwa semua kondisi database lain selalu identik setelah init.
+
+Native dikembalikan ke port 8000 dengan database EnvKit; smoke final lulus. Worker native dan Docker kembali aktif setelah perbandingan snapshot, sehingga perubahan SLA berikutnya merupakan aktivitas normal worker. Branch feat/sgwa-demo dipertahankan lokal tanpa merge/push.
