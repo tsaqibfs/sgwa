@@ -116,3 +116,17 @@ def test_report_rr_snapshot_without_changing_auth_isolation(report_case):
         assert db.scalar(select(func.count()).select_from(Request))==5
     with engine.connect() as connection:assert connection.get_isolation_level()==original
     assert read(engine,6).total==6
+
+def test_report_endpoint_auth_filters_and_cache(report_case):
+    from backend.tests.conftest import login
+    client,_,_=report_case
+    assert client.get('/api/v1/reports').status_code==401
+    assert login(client,'report1@test.id').status_code==200
+    response=client.get('/api/v1/reports?page_size=1')
+    assert response.status_code==200 and response.headers['cache-control']=='no-store'
+    body=response.json();assert body['total']==3 and len(body['items'])==1 and body['summary']['total']==3
+    for query in ['owner=2','date_from=bad','status=bad','page=0','page_size=101','agency_id=0','date_from=2026-10-14&date_to=2026-10-13']:
+        assert client.get('/api/v1/reports?'+query).status_code==422
+    login(client,'report3@test.id');assert client.get('/api/v1/reports?agency_id=2').status_code==403
+    login(client,'report5@test.id');assert client.get('/api/v1/reports').json()['total']==0
+    login(client,'report7@test.id');assert client.get('/api/v1/reports').status_code==403

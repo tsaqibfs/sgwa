@@ -21,6 +21,7 @@ from backend.app.forms.routes import router as forms_router
 from backend.app.notifications.routes import router as notifications_router
 from backend.app.results.routes import router as results_router
 from backend.app.mocks.routes import router as mocks_router
+from backend.app.reports.routes import router as reports_router
 
 
 @asynccontextmanager
@@ -57,7 +58,10 @@ def create_app() -> FastAPI:
                     raise jwt.InvalidTokenError('Wrong CSRF session')
             except (jwt.InvalidTokenError,KeyError):
                 return JSONResponse(status_code=403,content={'detail':'Validasi keamanan gagal. Muat ulang halaman.'})
-        return await call_next(request)
+        response=await call_next(request)
+        if request.url.path=='/api/v1/reports' or request.url.path.startswith('/api/v1/reports/'):
+            response.headers['Cache-Control']='no-store'
+        return response
 
     application.include_router(auth_router,prefix='/api/v1')
     application.include_router(request_router,prefix='/api/v1')
@@ -72,6 +76,7 @@ def create_app() -> FastAPI:
     application.include_router(notifications_router,prefix='/api/v1')
     application.include_router(results_router,prefix='/api/v1')
     application.include_router(mocks_router,prefix='/api/v1')
+    application.include_router(reports_router,prefix='/api/v1')
 
     @application.get('/api/v1/health',tags=['Sistem'])
     def health():
