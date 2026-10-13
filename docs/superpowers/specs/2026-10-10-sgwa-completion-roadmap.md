@@ -58,3 +58,8 @@ Seluruh scope baru dianggap selesai setelah ketiga tahap lolos verifikasi dan ke
 ## Status implementasi — 11 Oktober 2026
 
 Tahap A tersedia. Bagian ML tahap B tersedia:25 kelas, cross-validation, normalisasi, feedback terverifikasi, kandidat batch, aktivasi/rollback dan bootstrap aman. Holdout sintetis macro-F1 0,546; routing otomatis nonaktif. Laporan/CSV dan analytics prediktif tahap B, serta tahap C, masih backlog. Lihat docs/ml-feedback-verification.md untuk bukti terbaru; uraian baseline di atas adalah konteks rancangan historis.
+
+
+## Status tahap laporan — 13 Oktober 2026
+
+Laporan/CSV tahap B telah diimplementasikan: scope role, filter tanggal WIB/status/dinas termasuk pendamping, summary/page, CSV lengkap sampai5.000, formula safety, audit metadata dan snapshot RR. Tanpa migrasi/model training. Analytics prediktif tahap B dan seluruh tahap C masih backlog. Kualitas ML baseline/normalizer/pointer tidak diubah; lihat docs/reports-verification.md untuk bukti terbaru.

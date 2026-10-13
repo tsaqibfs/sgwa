@@ -102,10 +102,15 @@ def test_page_order_and_batch_projection(report_case):
         return len([q for q in calls if q.lstrip().upper().startswith('SELECT')])
     assert queries(5)==queries(2)
 
-def test_report_rr_snapshot_without_changing_auth_isolation(report_case):
+def test_report_rr_snapshot_without_changing_auth_isolation(report_case,monkeypatch):
     reports();_,engine,_=report_case
     from backend.app.reports.session import get_report_session
-    with engine.connect() as connection:original=connection.get_isolation_level()
+    from backend.app.reports import session as report_session
+    from sqlalchemy import create_engine
+    auth_engine=create_engine(engine.url,isolation_level='READ COMMITTED')
+    monkeypatch.setattr(report_session,'get_engine',lambda:auth_engine)
+    with auth_engine.connect() as connection:original=connection.get_isolation_level()
+    assert original=='READ COMMITTED'
     with contextmanager(get_report_session)() as db:
         assert db.connection().get_isolation_level()=='REPEATABLE READ'
         assert db.scalar(select(func.count()).select_from(Request))==5
@@ -114,7 +119,8 @@ def test_report_rr_snapshot_without_changing_auth_isolation(report_case):
         with engine.begin() as writer:
             writer.execute(text("INSERT INTO requests(id,reference,citizen_id,title,description,status,version,created_at,updated_at) VALUES(6,'REPORT-6',1,'Concurrent','Description','pending',1,'2026-10-13','2026-10-13')"))
         assert db.scalar(select(func.count()).select_from(Request))==5
-    with engine.connect() as connection:assert connection.get_isolation_level()==original
+    with auth_engine.connect() as connection:assert connection.get_isolation_level()==original
+    auth_engine.dispose()
     assert read(engine,6).total==6
 
 def test_report_endpoint_auth_filters_and_cache(report_case):
@@ -125,8 +131,28 @@ def test_report_endpoint_auth_filters_and_cache(report_case):
     response=client.get('/api/v1/reports?page_size=1')
     assert response.status_code==200 and response.headers['cache-control']=='no-store'
     body=response.json();assert body['total']==3 and len(body['items'])==1 and body['summary']['total']==3
-    for query in ['owner=2','date_from=bad','status=bad','page=0','page_size=101','agency_id=0','date_from=2026-10-14&date_to=2026-10-13']:
+    for query in ['owner=2','date_from=bad','date_from=0','date_to=2026-10-13T00:00:00','status=bad','page=0','page_size=101','agency_id=0','date_from=2026-10-14&date_to=2026-10-13']:
         assert client.get('/api/v1/reports?'+query).status_code==422
     login(client,'report3@test.id');assert client.get('/api/v1/reports?agency_id=2').status_code==403
     login(client,'report5@test.id');assert client.get('/api/v1/reports').json()['total']==0
     login(client,'report7@test.id');assert client.get('/api/v1/reports').status_code==403
+
+@pytest.mark.parametrize('value',['0',0,'2026-10-13T00:00:00'])
+def test_report_dates_require_iso_calendar_date(value):
+    schemas,_=reports()
+    with pytest.raises(ValidationError):schemas.ReportFilters(date_from=value)
+
+def test_report_and_export_work_with_single_connection_pool(report_case,monkeypatch):
+    from sqlalchemy import create_engine
+    from backend.tests.conftest import login
+    from backend.app import db as db_module
+    from backend.app.reports import session as report_session
+    client,engine,_=report_case;login(client,'report6@test.id')
+    one=create_engine(engine.url,pool_size=1,max_overflow=0,pool_timeout=0.1)
+    monkeypatch.setattr(db_module,'get_engine',lambda:one)
+    monkeypatch.setattr(report_session,'get_engine',lambda:one)
+    try:
+        response=client.get('/api/v1/reports');assert response.status_code==200
+        assert response.json()['total']==5
+        assert client.get('/api/v1/reports/requests.csv').status_code==200
+    finally:one.dispose()

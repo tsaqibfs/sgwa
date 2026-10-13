@@ -67,3 +67,12 @@ Migrasi terbaru `0007` menambahkan profil/session version, formulir/versi, notif
 ## Pembaruan ML — 11 Oktober 2026
 
 Migrasi terbaru sekarang `0008`, model25kelas dan normalisasi tersedia. Init pertama mengarsipkan artefak empat kelas dan memasang versi awal; startup berikutnya mempertahankan versi pilihan admin, tanpa training ulang. Kandidat batch perlu review dan aktivasi manual. Startup ulang, registry25kelas, login/CSRF dan SSE melalui Nginx telah diuji. Baseline holdout sintetis macro-F1 0,546; routing otomatis nonaktif dan pengajuan memerlukan review admin. Panduan training/aktivasi/rollback: [ML](ml.md); bukti: [verifikasi ML](ml-feedback-verification.md).
+
+
+## Laporan dan CSV — 13 Oktober 2026
+
+Setelah backend dan frontend diperbarui, buka **Laporan layanan**. Scope mengikuti akun: warga miliknya, staf tugas dinasnya, admin seluruh permohonan. Tanggal pengajuan WIB (format query YYYY-MM-DD), status dan dinas diterapkan melalui **Terapkan filter**; CSV menggunakan filter applied dan seluruh halaman, maksimum5.000. Dinas pendamping ikut filter tetapi permohonan tidak diduplikasi.
+
+Completion rate mencakup approved+rejected; durasi final memakai timestamp tersimpan; overdue hanya tugas dalam cakupan. File UTF-8 BOM, comma/CRLF dengan sanitasi formula dan tanpa kolom identitas/kontak/deskripsi/jawaban/catatan/feedback. Layar dan CSV merupakan snapshot masing-masing request; audit export_prepared hanya menyatakan file siap. Lihat [README](../README.md#laporan-layanan-dan-csv--13-oktober-2026) dan [verifikasi laporan](reports-verification.md).
+
+Demo: buat permohonan pada schema E2E terpisah, admin alihkan ke dinas utama+pendamping, buka laporan warga lalu staf pendamping, terapkan filter dan unduh CSV. Admin melihat ringkasan lebih luas. Kasus lebih dari5.000 harus413; jangan membuat ribuan fixture pada database aplikasi hanya untuk demo. E2E laptop baru memakai .env.e2e dan scripts.prepare_e2e/run_e2e_server seperti panduan setup.

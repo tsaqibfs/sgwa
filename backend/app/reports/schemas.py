@@ -1,6 +1,7 @@
 from datetime import date,datetime,time,timedelta
 from typing import Literal
-from pydantic import BaseModel,ConfigDict,Field,model_validator
+import re
+from pydantic import BaseModel,ConfigDict,Field,model_validator,field_validator
 
 Status=Literal['pending','processing','escalated','approved','rejected']
 STATUSES=('pending','processing','escalated','approved','rejected')
@@ -11,6 +12,14 @@ class ReportFilters(BaseModel):
     date_to:date|None=None
     status:Status|None=None
     agency_id:int|None=Field(default=None,gt=0)
+
+    @field_validator('date_from','date_to',mode='before')
+    @classmethod
+    def iso_date(cls,value):
+        if value is None or (isinstance(value,date) and not isinstance(value,datetime)):return value
+        if not isinstance(value,str) or not re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}',value):
+            raise ValueError('Tanggal harus memakai format YYYY-MM-DD.')
+        return value
 
     @model_validator(mode='after')
     def valid_dates(self):

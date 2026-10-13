@@ -6,7 +6,7 @@ Web proyek akhir semester untuk klasifikasi permohonan dengan ML lokal dan workf
 
 Sudah tersedia: registrasi/login; role citizen/staff/admin; pengajuan teks; TF-IDF + Logistic Regression; routing ke beberapa dinas; keputusan per dinas; eskalasi confidence rendah, penolakan dan SLA; review admin; SSE; audit; manajemen dinas/staf; editor routing dan SLA; Swagger/OpenAPI; profil/ganti password dengan pencabutan seluruh sesi; form builder dan jawaban versi historis; notifikasi persisten; bukti hasil dengan snapshot/cetak; mock API sintetis.
 
-Model **25 kelas**, normalisasi singkatan, cross-validation berbasis kelompok, koreksi/verifikasi admin, training kandidat, aktivasi dan rollback sudah tersedia. Masih backlog: laporan/CSV, analytics prediktif, coverage, CI, TLS/rate limiting dan load test. Review final dilakukan admin; password Argon2; worker Python/MySQL tanpa Redis/Celery.
+Model **25 kelas**, normalisasi singkatan, cross-validation berbasis kelompok, koreksi/verifikasi admin, training kandidat, aktivasi dan rollback sudah tersedia. Laporan layanan dan ekspor CSV sesuai role juga tersedia. Masih backlog: analytics prediktif, coverage, CI, TLS/rate limiting dan load test. Review final dilakukan admin; password Argon2; worker Python/MySQL tanpa Redis/Celery.
 
 Dataset berisi **2.500 contoh sintetis** dengan 25 kode katalog resmi. Holdout menghasilkan macro-F1 **0,546**, di bawah target0,85. Validasi belum memiliki cukup contoh accepted pada confidence minimal70%: **routing otomatis nonaktif**, sehingga pengajuan masuk review admin sambil menampilkan rekomendasi ML. Skor ini belum mengukur akurasi data warga nyata.
 
@@ -14,7 +14,7 @@ Migrasi terbaru `0008` menambahkan feedback, registry dan aktivasi ML. Lihat [Mo
 
 ## Instalasi dengan Docker (alternatif lengkap)
 
-Untuk menjalankan seluruh aplikasi tanpa memasang Python, Node.js dan MySQL lokal, gunakan [panduan Docker](docs/docker.md). Paket `compose.docker.yaml` menyediakan frontend di **localhost:8080**, API/Swagger di **localhost:8001**, worker SLA, dan MySQL 8.4. Migrasi tabel, training ML dan seed 25 instansi berjalan otomatis. Database container terpisah dari EnvKit dan `compose.yaml` lama.
+Untuk menjalankan seluruh aplikasi tanpa memasang Python, Node.js dan MySQL lokal, gunakan [panduan Docker](docs/docker.md). Paket `compose.docker.yaml` menyediakan frontend di **localhost:8080**, API/Swagger di **localhost:8001**, worker SLA, dan MySQL 8.4. Migrasi tabel dan seed 25 instansi berjalan otomatis; bootstrap ML hanya membuat model awal saat belum tersedia. Startup berikutnya mempertahankan model pilihan admin. Database container terpisah dari EnvKit dan `compose.yaml` lama.
 
 ## Instalasi pertama di laptop baru — Windows / PowerShell
 
@@ -179,3 +179,18 @@ E2E menambahkan data demo pada database aplikasi, termasuk fixture Pendidikan. J
 Dokumen: [setup](docs/setup.md), [ML](docs/ml.md), [demo](docs/demo.md), [verifikasi](docs/verification.md).
 
 Verifikasi pembaruan katalog dan panduan instalasi: [catalog-verification.md](docs/catalog-verification.md).
+
+
+## Laporan layanan dan CSV — 13 Oktober 2026
+
+Menu **Laporan layanan** tersedia untuk warga/staf/admin: warga hanya miliknya, staf permohonan dengan tugas dinasnya, admin seluruh permohonan. Status yang ditampilkan adalah status keseluruhan permohonan. Filter dinas mencakup utama dan pendamping; satu permohonan dihitung sekali.
+
+Pilih tanggal pengajuan **WIB**, status dan dinas, lalu **Terapkan filter**. Default awal bulan sampai hari ini; kosongkan tanggal untuk seluruh periode. CSV memakai filter yang sudah diterapkan, bukan isian draft dan bukan hanya halaman yang terlihat. Maksimal **5.000** permohonan; lebih banyak ditolak dan perlu mempersempit filter. Hasil kosong tetap bisa diunduh sebagai file berheader.
+
+Ringkasan: total, status, keputusan final, completion rate, rata-rata durasi final, dan permohonan dengan tugas melewati SLA dalam cakupan laporan. **Selesai mencakup disetujui dan ditolak.** Rata-rata berdasarkan timestamp tersimpan, bukan waktu aktif petugas. Null ditampilkan sebagai `—`; tanpa forecast atau klaim KPI produksi.
+
+CSV: UTF-8 BOM, separator koma, CRLF, sepuluh kolom tetap. Judul/nama dinas dilindungi dari formula spreadsheet; prefix apostrof pada cell berisiko hanya berlaku untuk file, bukan teks aplikasi. Timestamp CSV memakai WIB dan confidence ML0–1. Identitas/kontak/deskripsi/jawaban/catatan/feedback tidak diekspor sebagai kolom. File dapat dibuka di Excel/LibreOffice melalui impor CSV UTF-8 bila locale memerlukan pengaturan separator.
+
+API: `GET /api/v1/reports` (pagination) dan `GET /api/v1/reports/requests.csv` (tanpa pagination). Query tanggal memakai `YYYY-MM-DD`; parameter tidak dikenal422, sesi401, filter dinas lain bagi staf403, hasil melebihi limit413. Respons `no-store`. Setiap request membaca snapshot konsisten; angka layar dapat berubah sebelum CSV diunduh. Audit `report.export_prepared` berarti file siap di server, bukan bukti file sudah disimpan pengguna.
+
+Tidak ada migrasi baru atau training model untuk fitur ini. Restart backend/native dan rebuild Docker setelah memperbarui kode; database, model aktif dan kandidat tetap digunakan. Bukti dan batas verifikasi ada di [laporan verifikasi](docs/reports-verification.md).

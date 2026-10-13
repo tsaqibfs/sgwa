@@ -135,3 +135,12 @@ Untuk menghapus fixture Pendidikan yang dibuat tes browser: `python -m scripts.c
 ## Pembaruan ML 25 kelas
 
 Migrasi `0008`. Setup pertama: migrasi → seed → bootstrap → backfill. Startup ulang mempertahankan versi aktif. Gunakan [panduan ML](ml.md) untuk koreksi, verifikasi, training kandidat, aktivasi dan rollback. Pengajuan baseline saat ini memerlukan review manual admin; confidence minimal70% saja belum cukup untuk mengaktifkan routing otomatis.
+
+
+## Laporan dan CSV — 13 Oktober 2026
+
+Setelah backend dan frontend diperbarui, buka **Laporan layanan**. Scope mengikuti akun: warga miliknya, staf tugas dinasnya, admin seluruh permohonan. Tanggal pengajuan WIB (format query YYYY-MM-DD), status dan dinas diterapkan melalui **Terapkan filter**; CSV menggunakan filter applied dan seluruh halaman, maksimum5.000. Dinas pendamping ikut filter tetapi permohonan tidak diduplikasi.
+
+Completion rate mencakup approved+rejected; durasi final memakai timestamp tersimpan; overdue hanya tugas dalam cakupan. File UTF-8 BOM, comma/CRLF dengan sanitasi formula dan tanpa kolom identitas/kontak/deskripsi/jawaban/catatan/feedback. Layar dan CSV merupakan snapshot masing-masing request; audit export_prepared hanya menyatakan file siap. Lihat [README](../README.md#laporan-layanan-dan-csv--13-oktober-2026) dan [verifikasi laporan](reports-verification.md).
+
+Demo: buat permohonan pada schema E2E terpisah, admin alihkan ke dinas utama+pendamping, buka laporan warga lalu staf pendamping, terapkan filter dan unduh CSV. Admin melihat ringkasan lebih luas. Kasus lebih dari5.000 harus413; jangan membuat ribuan fixture pada database aplikasi hanya untuk demo. E2E laptop baru memakai .env.e2e dan scripts.prepare_e2e/run_e2e_server seperti panduan setup.
