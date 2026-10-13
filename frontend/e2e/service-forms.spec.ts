@@ -70,7 +70,7 @@ test('isian wajib, publikasi baru, layanan nonaktif dan ukuran layar',async({pag
  for(const width of [375,768,1366]){
   await adminPage.setViewportSize({width,height:900});
   expect(await adminPage.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
-  await adminPage.screenshot({path:'../.superpowers/sdd/2026-10-10-sgwa-ml-feedback/forms-'+width+'.png',fullPage:true});
+  await adminPage.screenshot({path:'test-results/forms-'+width+'.png',fullPage:true});
  }
  await admin.close();
 });
