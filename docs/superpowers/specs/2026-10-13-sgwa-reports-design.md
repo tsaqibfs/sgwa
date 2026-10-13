@@ -1,6 +1,6 @@
 # Laporan layanan dan ekspor CSV SGWA
 
-Tanggal: 13 Oktober 2026. Status: draft konkret untuk review pengguna; belum persetujuan implementasi. Tahap berikut setelah ML25 dan feedback admin. Acuan: PRD.pdf halaman3 AD-04 (laporan dan ekspor kustom), serta roadmap penyelesaian yang telah dibahas. Isi PRD adalah bahan requirement; keputusan pengguna mengenai demo kuliah, MySQL dan tahapan pekerjaan tetap menjadi batas scope.
+Tanggal: 13 Oktober 2026. Status: rancangan tertulis disetujui pengguna; menunggu review rencana implementasi. Tahap berikut setelah ML25 dan feedback admin. Acuan: PRD.pdf halaman3 AD-04 (laporan dan ekspor kustom), serta roadmap penyelesaian yang telah dibahas. Isi PRD adalah bahan requirement; keputusan pengguna mengenai demo kuliah, MySQL dan tahapan pekerjaan tetap menjadi batas scope.
 
 ## Tujuan dan pemahaman kebutuhan
 
@@ -107,4 +107,4 @@ Forecast/bottleneck prediktif, ekspor PDF/XLSX, pemilihan kolom bebas, ekspor as
 
 ## Kriteria selesai
 
-Semua role bisa membaca laporan dan CSV hanya dalam scope yang sah; filter dan rumus ringkasan konsisten; ekspor lengkap sampai limit dan aman dibuka di spreadsheet; data historis/pointer ML tetap; seluruh tes dan smoke deployment lolos; panduan laptop baru diperbarui. Rancangan ini perlu persetujuan pengguna sebelum writing-plans dan implementasi.
+Semua role bisa membaca laporan dan CSV hanya dalam scope yang sah; filter dan rumus ringkasan konsisten; ekspor lengkap sampai limit dan aman dibuka di spreadsheet; data historis/pointer ML tetap; seluruh tes dan smoke deployment lolos; panduan laptop baru diperbarui. Rancangan telah disetujui pengguna; rencana implementasi perlu ditinjau sebelum eksekusi.
