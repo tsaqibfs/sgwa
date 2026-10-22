@@ -4,11 +4,17 @@ Web proyek akhir semester untuk klasifikasi permohonan dengan ML lokal dan workf
 
 ## Status terhadap PRD
 
-Sudah tersedia: registrasi/login; role citizen/staff/admin; pengajuan teks; TF-IDF + Logistic Regression; routing ke beberapa dinas; keputusan per dinas; eskalasi confidence rendah, penolakan dan SLA; review admin; SSE; audit; manajemen dinas/staf; editor routing dan SLA; Swagger/OpenAPI.
+Sudah tersedia: registrasi/login; role citizen/staff/admin; pengajuan teks; TF-IDF + Logistic Regression; routing ke beberapa dinas; keputusan per dinas; eskalasi confidence rendah, penolakan dan SLA; review admin; SSE; audit; manajemen dinas/staf; editor routing dan SLA; Swagger/OpenAPI; profil/ganti password dengan pencabutan seluruh sesi; form builder dan jawaban versi historis; notifikasi persisten; bukti hasil dengan snapshot/cetak; mock API sintetis.
 
-Masih backlog: profil/ganti password, form builder, notifikasi persisten, bukti hasil, mock API, laporan/CSV, analytics prediktif, cross-validation, laporan coverage, CI, TLS/rate limiting dan load test. Review akhir dilakukan admin, berbeda dari staf pada PRD. Password menggunakan Argon2, bukan bcrypt. Worker memakai Python dan MySQL tanpa Redis/Celery. Stack mengikuti ketentuan pengguna: MySQL dan AI/ML wajib; teknologi lain bebas.
+Model **25 kelas**, normalisasi singkatan, cross-validation berbasis kelompok, koreksi/verifikasi admin, training kandidat, aktivasi dan rollback sudah tersedia. Laporan layanan dan ekspor CSV sesuai role juga tersedia. Masih backlog: analytics prediktif, coverage, CI, TLS/rate limiting dan load test. Review final dilakukan admin; password Argon2; worker Python/MySQL tanpa Redis/Celery.
 
-Katalog 25 instansi **bukan** 25 kelas ML. Model sekarang dilatih untuk `dukcapil`, `perizinan`, `kesehatan`, `pajak`. Instansi Pajak lama dikeluarkan dari katalog; prediksi ke instansi yang tidak tersedia masuk review admin. Dinas baru dapat menerima pengalihan manual atau menjadi tujuan aturan workflow. Kelas otomatis baru membutuhkan data berlabel dan training ulang.
+Dataset berisi **2.500 contoh sintetis** dengan 25 kode katalog resmi. Holdout menghasilkan macro-F1 **0,546**, di bawah target0,85. Validasi belum memiliki cukup contoh accepted pada confidence minimal70%: **routing otomatis nonaktif**, sehingga pengajuan masuk review admin sambil menampilkan rekomendasi ML. Skor ini belum mengukur akurasi data warga nyata.
+
+Migrasi terbaru `0008` menambahkan feedback, registry dan aktivasi ML. Lihat [Model ML](docs/ml.md), [verifikasi ML](docs/ml-feedback-verification.md), dan [verifikasi fitur layanan](docs/service-features-verification.md). Prediksi lama dan bukti hasil demonstrasi tetap dipertahankan.
+
+## Instalasi dengan Docker (alternatif lengkap)
+
+Untuk menjalankan seluruh aplikasi tanpa memasang Python, Node.js dan MySQL lokal, gunakan [panduan Docker](docs/docker.md). Paket `compose.docker.yaml` menyediakan frontend di **localhost:8080**, API/Swagger di **localhost:8001**, worker SLA, dan MySQL 8.4. Migrasi tabel dan seed 25 instansi berjalan otomatis; bootstrap ML hanya membuat model awal saat belum tersedia. Startup berikutnya mempertahankan model pilihan admin. Database container terpisah dari EnvKit dan `compose.yaml` lama.
 
 ## Instalasi pertama di laptop baru — Windows / PowerShell
 
@@ -67,13 +73,14 @@ Buat JWT secret dengan `.\.venv\Scripts\python.exe -c "import secrets; print(sec
 
 ```powershell
 .\.venv\Scripts\python.exe -m alembic -c backend/alembic.ini upgrade head
-.\.venv\Scripts\python.exe -m ml.train
 .\.venv\Scripts\python.exe -m backend.app.seed
+.\.venv\Scripts\python.exe -m scripts.bootstrap_ml
+.\.venv\Scripts\python.exe -m scripts.backfill_results
 ```
 
 **Alembic membuat seluruh tabel MySQL otomatis.** Tabel aplikasi: `agencies`, `users`, `requests`, `classification_results`, `request_workflows`, `workflow_routes`, `request_events`, `audit_logs`, ditambah `alembic_version`. Tidak perlu membuat tabel satu per satu. Startup API tidak otomatis membuat tabel. Jangan gunakan `drop_all` pada database aplikasi.
 
-Training membuat `ml/artifacts/model.joblib` yang diabaikan Git. Seed menambahkan 25 instansi dan akun demo; seed ulang mempertahankan ID, SLA, akun dan password lama. Nama katalog diperbarui sesuai daftar. Seed tidak melakukan penghapusan data lama; gunakan langkah upgrade di bawah untuk membersihkan dummy.
+Bootstrap pertama membuat `ml/artifacts/versions/<id>/` dan mengaktifkan model awal. Startup berikutnya mempertahankan model pilihan admin tanpa training ulang. Model empat kelas lama disalin ke archive; prediksi historis tetap. Seed menambahkan 25 instansi dan akun demo; seed ulang mempertahankan ID, SLA, akun dan password lama. Nama katalog diperbarui sesuai daftar. Seed tidak melakukan penghapusan data lama; gunakan langkah upgrade di bawah untuk membersihkan dummy.
 
 ### 5. Jalankan backend, frontend, dan worker
 
@@ -113,7 +120,7 @@ Password akun awal mengikuti `DEMO_PASSWORD` pada seed pertama:
 | Staf Perizinan / DPMPTSP | perizinan@demo.sgwa.id |
 | Staf Kesehatan | kesehatan@demo.sgwa.id |
 
-Login admin dan periksa Dinas & layanan berisi 25 instansi. Staf untuk 22 instansi lain dibuat melalui Manajemen staf. Akun Pajak lama tidak dibuat lagi. Login warga, ajukan pengurusan KTP, lalu proses melalui staf Dukcapil. Untuk demo paralel, admin dapat membuat rute Perizinan + Kesehatan sebagai simulasi koordinasi, bukan aturan pemerintah resmi. Kedua staf harus menyetujui agar status agregat Disetujui. Penolakan/SLA lewat masuk review admin. [Panduan demo](docs/demo.md).
+Login admin dan periksa Dinas & layanan berisi 25 instansi. Staf untuk 22 instansi lain dibuat melalui Manajemen staf. Login warga, ajukan pengurusan KTP; admin meninjau dan mengalihkan ke Dukcapil sebelum staf memproses. Demo paralel: admin memilih Perizinan dan Kesehatan sebagai pendamping saat review. Kedua staf harus menyetujui agar status agregat Disetujui. Ini simulasi koordinasi akademik. [Panduan demo](docs/demo.md).
 
 ## Upgrade katalog pada database lama
 
@@ -124,6 +131,8 @@ Hentikan backend dan worker selama pembersihan. Pastikan `.env` menunjuk databas
 .\.venv\Scripts\python.exe -m scripts.sync_agency_catalog
 .\.venv\Scripts\python.exe -m scripts.sync_agency_catalog --apply
 .\.venv\Scripts\python.exe -m backend.app.seed
+.\.venv\Scripts\python.exe -m scripts.bootstrap_ml
+.\.venv\Scripts\python.exe -m scripts.backfill_results
 ```
 
 Sync tanpa `--apply` menampilkan preview dan rollback. `--apply` membuat backup SQL penuh di `.superpowers/backups/` sebelum menerapkan satu transaksi. Backup mengandung data privat; jangan dibagikan. Untuk pemulihan, uji backup pada schema terpisah yang kosong sebelum memulihkan aplikasi.
@@ -170,3 +179,18 @@ E2E menambahkan data demo pada database aplikasi, termasuk fixture Pendidikan. J
 Dokumen: [setup](docs/setup.md), [ML](docs/ml.md), [demo](docs/demo.md), [verifikasi](docs/verification.md).
 
 Verifikasi pembaruan katalog dan panduan instalasi: [catalog-verification.md](docs/catalog-verification.md).
+
+
+## Laporan layanan dan CSV — 13 Oktober 2026
+
+Menu **Laporan layanan** tersedia untuk warga/staf/admin: warga hanya miliknya, staf permohonan dengan tugas dinasnya, admin seluruh permohonan. Status yang ditampilkan adalah status keseluruhan permohonan. Filter dinas mencakup utama dan pendamping; satu permohonan dihitung sekali.
+
+Pilih tanggal pengajuan **WIB**, status dan dinas, lalu **Terapkan filter**. Default awal bulan sampai hari ini; kosongkan tanggal untuk seluruh periode. CSV memakai filter yang sudah diterapkan, bukan isian draft dan bukan hanya halaman yang terlihat. Maksimal **5.000** permohonan; lebih banyak ditolak dan perlu mempersempit filter. Hasil kosong tetap bisa diunduh sebagai file berheader.
+
+Ringkasan: total, status, keputusan final, completion rate, rata-rata durasi final, dan permohonan dengan tugas melewati SLA dalam cakupan laporan. **Selesai mencakup disetujui dan ditolak.** Rata-rata berdasarkan timestamp tersimpan, bukan waktu aktif petugas. Null ditampilkan sebagai `—`; tanpa forecast atau klaim KPI produksi.
+
+CSV: UTF-8 BOM, separator koma, CRLF, sepuluh kolom tetap. Judul/nama dinas dilindungi dari formula spreadsheet; prefix apostrof pada cell berisiko hanya berlaku untuk file, bukan teks aplikasi. Timestamp CSV memakai WIB dan confidence ML0–1. Identitas/kontak/deskripsi/jawaban/catatan/feedback tidak diekspor sebagai kolom. File dapat dibuka di Excel/LibreOffice melalui impor CSV UTF-8 bila locale memerlukan pengaturan separator.
+
+API: `GET /api/v1/reports` (pagination) dan `GET /api/v1/reports/requests.csv` (tanpa pagination). Query tanggal memakai `YYYY-MM-DD`; parameter tidak dikenal422, sesi401, filter dinas lain bagi staf403, hasil melebihi limit413. Respons `no-store`. Setiap request membaca snapshot konsisten; angka layar dapat berubah sebelum CSV diunduh. Audit `report.export_prepared` berarti file siap di server, bukan bukti file sudah disimpan pengguna.
+
+Tidak ada migrasi baru atau training model untuk fitur ini. Restart backend/native dan rebuild Docker setelah memperbarui kode; database, model aktif dan kandidat tetap digunakan. Bukti dan batas verifikasi ada di [laporan verifikasi](docs/reports-verification.md).

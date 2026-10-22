@@ -2,11 +2,15 @@
 __pycache__/
 .pytest_cache/
 .env
+.env.docker
 node_modules/
 dist/
 *.egg-info/
 .superpowers/
 ml/artifacts/*.joblib
+ml/artifacts/versions/
+ml/artifacts/archive/
+ml/artifacts/.staging/
 playwright-report/
 test-results/
 *.log
@@ -15,3 +19,5 @@ test-results/
 coverage/
 .coverage
 htmlcov/
+.env.e2e
+uploads/

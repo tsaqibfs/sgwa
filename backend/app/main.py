@@ -16,14 +16,18 @@ from backend.app.ml.routes import router as ml_router
 from backend.app.workflow.routes import router as workflow_router
 from backend.app.live.routes import router as live_router
 from backend.app.audit.routes import router as audit_router
+from backend.app.profile.routes import router as profile_router
+from backend.app.forms.routes import router as forms_router
+from backend.app.notifications.routes import router as notifications_router
+from backend.app.results.routes import router as results_router
+from backend.app.mocks.routes import router as mocks_router
+from backend.app.reports.routes import router as reports_router
+from backend.app.attachments.routes import router as attachments_router
 
 
 @asynccontextmanager
 async def lifespan(app):
-    try:
-        app.state.classifier=Classifier(get_settings().model_dir)
-    except ModelUnavailable:
-        app.state.classifier=None
+    app.state.ml_classifier_cache={}
     yield
 
 
@@ -55,7 +59,10 @@ def create_app() -> FastAPI:
                     raise jwt.InvalidTokenError('Wrong CSRF session')
             except (jwt.InvalidTokenError,KeyError):
                 return JSONResponse(status_code=403,content={'detail':'Validasi keamanan gagal. Muat ulang halaman.'})
-        return await call_next(request)
+        response=await call_next(request)
+        if request.url.path=='/api/v1/reports' or request.url.path.startswith('/api/v1/reports/'):
+            response.headers['Cache-Control']='no-store'
+        return response
 
     application.include_router(auth_router,prefix='/api/v1')
     application.include_router(request_router,prefix='/api/v1')
@@ -65,6 +72,13 @@ def create_app() -> FastAPI:
     application.include_router(workflow_router,prefix='/api/v1')
     application.include_router(live_router,prefix='/api/v1')
     application.include_router(audit_router,prefix='/api/v1')
+    application.include_router(profile_router,prefix='/api/v1')
+    application.include_router(forms_router,prefix='/api/v1')
+    application.include_router(notifications_router,prefix='/api/v1')
+    application.include_router(results_router,prefix='/api/v1')
+    application.include_router(mocks_router,prefix='/api/v1')
+    application.include_router(reports_router,prefix='/api/v1')
+    application.include_router(attachments_router,prefix='/api/v1')
 
     @application.get('/api/v1/health',tags=['Sistem'])
     def health():

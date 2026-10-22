@@ -1,37 +1,51 @@
-# Model klasifikasi SGWA
+# ML 25 kelas dan pembelajaran dari koreksi
 
-Tujuan model adalah menentukan satu dinas tujuan dari teks permohonan Indonesia. Model tidak menyetujui/menolak layanan.
+Classifier memilih satu kelas utama dari 25 kode katalog resmi. Workflow dapat melibatkan beberapa dinas. ML tidak menyetujui atau menolak layanan.
 
-## Pipeline
+## Data dan hasil aktual
 
-TF-IDF unigram/bigram dengan sublinear TF → Logistic Regression (`C=4`, `max_iter=1000`, `random_state=42`). Inferensi mengembalikan probabilitas tiap kelas. Kelas dibaca dari model, sehingga tidak terikat empat kelas awal.
+`ml/data/requests.csv`: 2.500 contoh **sintetis**, 100 per kelas, 10 keluarga skenario per kelas. Normalisasi `id-v1`: Unicode NFKC, lowercase, whitespace dan alias token konservatif (`jln`, `bnyk`, `lampmer`). Negasi/nama lokasi dipertahankan; tanpa fuzzy typo atau NER.
 
-Confidence tertinggi minimal 0,60, fitur teks dikenal, dan dinas aktif: routing otomatis. Confidence di bawah threshold, tidak ada fitur dikenal, atau dinas tidak aktif: eskalasi tanpa tujuan yang ditugaskan. Probabilitas ini belum dikalibrasi terhadap populasi warga nyata.
+TF-IDF unigram/bigram sublinear → Logistic Regression (`C=4`, `max_iter=1000`, seed42). Holdout tetap `ml/data/holdout.json`: 500 contoh/50 kelompok. Training dasar: 2.000 contoh/200 kelompok. StratifiedGroupKFold lima fold pada training, TF-IDF di-fit ulang setiap fold. Feedback satu permohonan/hash/family dikelompokkan; konflik label ditolak; overlap holdout dikeluarkan.
 
-## Data dan pembagian
+Macro-F1 holdout **0,5463865546**, belum mencapai target0,85. Threshold dipilih dari validasi OOF pada0,70–0,95 dengan precision accepted minimal0,90 dan minimal25 contoh accepted. Baseline hanya2 accepted pada0,70, precision1,00, coverage0,10%: **routing otomatis nonaktif**. Pengajuan masuk review admin meskipun rekomendasi ML berconfidence tinggi. Confidence belum dikalibrasi pada populasi warga nyata.
 
-`ml/data/requests.csv`: 200 contoh sintetis, 50 per kelas (dukcapil, pajak, perizinan, kesehatan). `ml/build_dataset.py` mendokumentasikan 10 skenario per kelas dan lima parafrasa tiap skenario. Semua parafrasa dari skenario yang sama mempunyai group_id sama.
+Dashboard membaca laporan aktual: skor setiap kelas, confusion matrix, CV mean/std, threshold/coverage dan sumber data. Evaluasi tetap berlabel **holdout sintetis**, juga jika training memakai feedback nyata. Peningkatan skor tidak dijanjikan.
 
-Training memakai 80% kelompok tiap kelas; test 20%. Kelompok tidak beririsan. TF-IDF fit hanya pada train. Artefak menyimpan train/test CSV, hashes dataset/model, metadata, laporan precision/recall/F1 dan confusion matrix. Tidak ada data pribadi warga.
+## Koreksi dan verifikasi admin
 
-## Hasil baseline aktual
+1. Detail permohonan → **Koreksi klasifikasi untuk training**: pilih kelas utama, sunting teks tanpa identitas pribadi, pilih asal data secara eksplisit, isi alasan. Kode keluarga opsional menyatukan parafrasa.
+2. Simpan koreksi; dinas tujuan, keputusan dan prediksi awal tidak berubah.
+3. **Feedback klasifikasi**: isi catatan dan verifikasi/tolak. Hanya revisi terkini terverifikasi menjadi data training. Revisi baru menyupersede yang lama.
 
-Training awal menghasilkan macro-F1 **1,000** pada **40** contoh test (8 kelompok), dengan 160 contoh training (32 kelompok). Nilai tinggi dapat terjadi karena dataset kecil, formal, dan memakai pola kalimat berulang. Walaupun parafrasa satu skenario dipisah sebagai kelompok, gaya kalimat bersama masih ada di kedua split. Ini tidak membuktikan generalisasi pada percakapan bebas, typo, slang, permohonan campuran, atau layanan pemerintah nyata.
+MySQL menyimpan snapshot teks/prediksi awal, label, sumber, pelaku, pemeriksa dan waktu. Prediksi sendiri dan pengalihan workflow bukan ground truth. Konflik409 meminta membaca revisi terbaru; draft teks tetap tersimpan. Riwayat hanya dapat diakses admin.
 
-Nilai dashboard berasal dari `evaluation.json` milik model yang dimuat, bukan angka hardcoded. Target 0,85 dari desain tetap sasaran; perubahan dataset dapat menghasilkan nilai lebih rendah dan harus dilaporkan apa adanya.
+## Training kandidat
 
-## Menambah kelas/dinas
+Native dari root proyek:
 
-1. Admin menambah dinas dengan kode tetap, misalnya `pendidikan`.
-2. Tambahkan minimal 50 teks dengan label tersebut dan minimal lima group_id berbeda. Gunakan lebih banyak skenario daripada sekadar menyalin template.
-3. Jalankan training: `python -m ml.train` dari virtual environment.
-4. Periksa evaluasi, kesalahan, dan apakah kelompok test benar-benar berbeda.
-5. Restart backend agar model baru dimuat sekali. Reroute manual ke dinas baru sudah tersedia sebelum training.
+```powershell
+.\.venv\Scripts\python.exe -m scripts.train_candidate --actor-email admin@demo.sgwa.id
+```
 
-Probabilitas dan versi model lama tersimpan pada masing-masing permohonan; training ulang tidak mengubah riwayat.
+Docker:
 
-## Pemeriksaan model
+```powershell
+docker compose --env-file .env.docker -f compose.docker.yaml run --rm init python -m scripts.train_candidate --actor-email admin@demo.sgwa.id
+```
 
-Artefak biner `model.joblib` tidak dikirim Git; buat melalui training. Loader memverifikasi hash dan kecocokan kelas/versi laporan. Joblib menggunakan pickle; hanya muat artefak yang dibuat lokal dan dipercaya. Tidak ada endpoint upload model.
+Email harus admin aktif. CLI mengambil snapshot feedback, menulis manifest/hash dan artefak immutable, mendaftarkan **kandidat**, tanpa mengubah model aktif. Training gagal tercatat dan exit nonzero. Gunakan email operator sebenarnya jika akun demo tidak tersedia.
 
-Untuk pengembangan berikutnya: kumpulkan teks independen yang ditinjau manusia, tambah variasi bahasa dan kasus ambigu, bandingkan dengan dummy baseline, serta lakukan evaluasi eksternal. Perubahan ini bukan syarat demo awal.
+Halaman **Model ML** → **Lihat evaluasi** → tinjau sumber/CV/holdout → isi alasan → **Aktifkan**. Artefak harus lengkap, checksum cocok, tepat25 kelas, holdout sama; penurunan macro-F1 lebih dari0,02 terhadap model aktif ditolak. Skor di bawah0,85 tetap diberi peringatan. Revision pointer melindungi aktivasi bersamaan.
+
+**Rollback** hanya ke versi yang pernah aktif, setelah membaca evaluasi dan mengisi alasan. Pengajuan berikutnya memakai versi baru tanpa restart API; prediksi historis tetap. Tidak ada pembelajaran online setiap laporan.
+
+## Bootstrap, backup dan pemulihan
+
+Setup: migrasi → seed → `python -m scripts.bootstrap_ml` → backfill. Instalasi pertama menyalin model lama ke archive dan mengaktifkan model25. Startup selanjutnya memvalidasi serta mempertahankan pilihan admin dan kandidat. `python -m ml.train` untuk artefak pengembangan; aplikasi memakai CLI kandidat.
+
+Backup **database dan seluruh MODEL_DIR** bersama. Model di `MODEL_DIR/versions/<id>/`; metadata/evaluation/manifest/train/test/model memiliki checksum. Joblib memakai pickle: hanya artefak training lokal tepercaya, tanpa upload model.
+
+File aktif hilang/rusak → inferensi503, bootstrap gagal tanpa retraining/fallback diam-diam. Pulihkan backup atau rollback admin ke artefak valid; daftar versi tetap tersedia. Perubahan kamus memerlukan versi normalizer baru dan retraining; jangan mengedit artefak aktif.
+
+Multi-label, mapping urusan, ekstraksi lokasi dan branding Lamongan belum diimplementasikan.

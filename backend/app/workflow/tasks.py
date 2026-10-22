@@ -21,6 +21,12 @@ def finish(db:Session,actor_id:int|None,item:Request,status:str,note:str,event_t
     if result.rowcount!=1:raise HTTPException(409,'Perubahan bersamaan terdeteksi. Muat ulang permohonan.')
     db.add(RequestEvent(request_id=item.id,actor_id=actor_id,event_type=event_type,from_status=old,to_status=status,note=note.strip()))
     record(db,actor_id,'request.'+event_type,'request',item.id,{'from_status':old,'to_status':status,**(changes or {})})
+    db.flush();db.refresh(item)
+    from backend.app.notifications.service import notify_request_event
+    agencies=list(db.scalars(select(RequestWorkflow.agency_id).where(RequestWorkflow.request_id==item.id)))
+    notify_request_event(db,item,f'request:{item.id}:{item.version}:{event_type}',event_type,agencies)
+    from backend.app.results.service import ensure_result_document
+    ensure_result_document(db,item)
     db.commit();db.refresh(item)
     return item
 

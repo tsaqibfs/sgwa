@@ -1,0 +1,7 @@
+export type MLLabel={code:string;name:string;active:boolean};
+export type Feedback={id:number;request_id:number;revision:number;current_revision:number;is_current:boolean;status:'pending'|'verified'|'rejected'|'superseded';training_text:string;corrected_code:string;provenance:'synthetic_demo'|'real';reason:string;family_key:string|null;created_at:string;review_note:string|null;original_text:string;original_prediction:{model_version:string;predicted_agency_code:string}};
+export type FeedbackList={items:Feedback[];total:number;page:number;page_size:number};
+export type RoutingPolicy={threshold:number;auto_routing_enabled:boolean;coverage:number;accepted_precision:number;accepted_count:number};
+export type ModelReport={model_version:string;macro_f1:number;train_count:number;test_count:number;train_groups:number;test_groups:number;classes:string[];confusion_matrix:number[][];classification_report:Record<string,{precision:number;recall:number;'f1-score':number;support:number}>;errors:{text:string;actual:string;predicted:string}[];cross_validation:{mean_macro_f1:number;std_macro_f1:number;folds:{fold:number;macro_f1:number}[]};routing_policy:RoutingPolicy;provenance_counts:Record<string,number>};
+export type ModelVersion={id:string;state:string;created_at:string;macro_f1:number|null;routing_policy:RoutingPolicy|null;provenance_counts:Record<string,number>|null;ever_active:boolean;can_activate:boolean;reason:string|null;below_target:boolean};
+export type ModelVersionsResponse={active_model_id:string|null;revision:number;items:ModelVersion[]};

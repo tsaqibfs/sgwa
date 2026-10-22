@@ -9,13 +9,14 @@ from backend.app.requests.service import scoped_query,get_request,submit_request
 from backend.app.workflow.service import transition_request,reroute_request
 from backend.app.workflow.schemas import TaskDecision,ReviewRoute
 from backend.app.workflow.tasks import decide_task,review_route
+from backend.app.ml.runtime import get_classifier
 
 router=APIRouter(prefix='/requests',tags=['Permohonan'])
 
 
 @router.post('',status_code=201)
-def submit(payload: RequestCreate,request: HttpRequest,actor: User=Depends(require_role('citizen')),db: Session=Depends(get_session)):
-    return serialize(db,submit_request(db,actor,payload,request.app.state.classifier),True)
+def submit(payload: RequestCreate,request: HttpRequest,actor: User=Depends(require_role('citizen')),db: Session=Depends(get_session),classifier=Depends(get_classifier)):
+    return serialize(db,submit_request(db,actor,payload,classifier),True)
 
 
 @router.get('')

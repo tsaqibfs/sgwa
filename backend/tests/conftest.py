@@ -1,11 +1,12 @@
 import importlib.util
 import os
 import pytest
+from pathlib import Path
 from backend.tests.safety import validated_test_url
 
 
 @pytest.fixture
-def appdb():
+def appdb(test_classifier):
     assert importlib.util.find_spec('backend.app.main'), 'API not implemented'
     from backend.app.config import get_settings
     from backend.app.db import get_engine
@@ -23,11 +24,33 @@ def appdb():
     app=create_app()
     from fastapi.testclient import TestClient
     with TestClient(app) as client:
+        from backend.app.ml.runtime import get_classifier
+        app.state.classifier=test_classifier
+        app.dependency_overrides[get_classifier]=lambda: app.state.classifier
         client.headers['Origin']='http://testserver'
         token=client.get('/api/v1/auth/csrf').json()['csrf_token']
         client.headers['X-CSRF-Token']=token
         yield client,engine,app
     Base.metadata.drop_all(engine);engine.dispose();get_engine.cache_clear();get_settings.cache_clear()
+
+
+@pytest.fixture(scope='session')
+def test_classifier(tmp_path_factory):
+    from ml.train import train
+    from backend.app.ml.classifier import Classifier
+    directory=tmp_path_factory.mktemp('integration-model')
+    train(Path('ml/data/requests.csv'),directory,holdout_path=Path('ml/data/holdout.json'))
+    classifier=Classifier(directory)
+    # Workflow integration needs an accepted prediction independently of the
+    # conservative OOF policy. Registry/ML tests exercise the real policy.
+    class WorkflowInferenceFixture:
+        def predict(self,text):
+            from dataclasses import replace
+            return replace(classifier.predict(text),auto_routing_enabled=True)
+        def metadata(self):return classifier.metadata()
+        @property
+        def report(self):return classifier.report
+    return WorkflowInferenceFixture()
 
 
 def register(client,email='warga@example.com',password='PasswordDemo123!'):

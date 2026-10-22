@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     trusted_origins: list[str] = ['http://localhost:5173', 'http://127.0.0.1:5173']
     cookie_secure: bool = False
     model_dir: Path = Path('ml/artifacts')
+    upload_dir: Path = Path('uploads')
     demo_password: str = Field(default='', repr=False)
 
 

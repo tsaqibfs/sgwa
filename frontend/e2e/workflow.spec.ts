@@ -1,5 +1,6 @@
 import {test,expect,type Page} from '@playwright/test';
 import {readFileSync} from 'node:fs';
+import {manualRoute} from './manual-routing';
 const password=readFileSync('../.env','utf8').split(/\r?\n/).find(line=>line.startsWith('DEMO_PASSWORD='))!.slice('DEMO_PASSWORD='.length);
 async function login(page:Page,email:string){await page.goto('/login');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Masuk',exact:true}).click();await expect(page).toHaveURL(/\/app/)}
 async function logout(page:Page){await page.getByRole('button',{name:'Keluar',exact:true}).click();await expect(page).toHaveURL(/\/login$/)}
@@ -12,7 +13,7 @@ test('admin mengatur SLA dan dua dinas memproses satu permohonan',async({page,br
  await page.getByLabel('SLA (hari kalender)').fill('4');await page.getByRole('button',{name:'Simpan perubahan'}).click();await expect(page.getByText('SLA 4 hari kalender',{exact:false})).toBeVisible();
  await logout(page);await login(page,'warga@demo.sgwa.id');await page.goto('/app/requests/new');
  const title='Perizinan paralel '+Date.now();await page.getByLabel('Judul permohonan').fill(title);await page.getByLabel('Ceritakan kebutuhan Anda').fill('Saya ingin mengurus izin usaha dan izin mendirikan bangunan melalui dinas perizinan. Berkas perizinan usaha sudah siap.');await page.getByRole('button',{name:'Kirim permohonan'}).click();await expect(page).toHaveURL(/requests\/\d+$/);const detail=page.url();
- await expect(page.locator('.workflow-task')).toHaveCount(2);
+ await manualRoute(browser,detail,'DINAS PENANAMAN MODAL DAN PELAYANAN TERPADU SATU PINTU','DINAS KESEHATAN');await page.reload();await expect(page.locator('.workflow-task')).toHaveCount(2);
  const ctx=await browser.newContext({baseURL:'http://127.0.0.1:5173'}),staff=await ctx.newPage();
  try{
   await login(staff,'perizinan@demo.sgwa.id');await staff.goto(detail);await staff.getByRole('button',{name:'Mulai proses'}).click();await staff.getByLabel('Catatan keputusan').fill('Perizinan lengkap; menunggu dinas lainnya.');await staff.getByRole('button',{name:'Disetujui',exact:true}).click();await staff.getByRole('button',{name:'Konfirmasi',exact:true}).click();await expect(page.locator('.page-heading .status')).toHaveText('Diproses',{timeout:12000});

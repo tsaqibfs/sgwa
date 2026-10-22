@@ -7,7 +7,7 @@ from backend.app.db import get_session
 from backend.app.models import User
 from backend.app.config import get_settings
 from backend.app.auth.schemas import Credentials, Register, UserOut
-from backend.app.auth.service import DUMMY_HASH, verify_password, hash_password, make_session, make_csrf, decode
+from backend.app.auth.service import DUMMY_HASH, verify_password, hash_password, make_session, make_csrf, decode, session_actor
 from backend.app.auth.dependencies import get_current_user
 from backend.app.audit.service import record
 
@@ -19,10 +19,12 @@ def set_csrf(response: Response,token: str):
 
 
 @router.get('/csrf')
-def csrf(request: Request,response: Response):
+def csrf(request: Request,response: Response,db: Session=Depends(get_session)):
     sid='anonymous'
     try:
-        sid=decode(request.cookies.get('sgwa_session',''),'session')['jti']
+        token=request.cookies.get('sgwa_session','')
+        session_actor(db,token)
+        sid=decode(token,'session')['jti']
     except (jwt.InvalidTokenError,KeyError):
         response.delete_cookie('sgwa_session')
     token=make_csrf(sid);set_csrf(response,token)
@@ -51,7 +53,7 @@ def login(payload: Credentials,response: Response,db: Session=Depends(get_sessio
         raise HTTPException(401,'Email atau password tidak sesuai.')
     record(db,user.id,'auth.login','user',user.id,{})
     db.commit()
-    token,csrf_token=make_session(user.id)
+    token,csrf_token=make_session(user.id,user.session_version)
     response.set_cookie('sgwa_session',token,max_age=1800,secure=get_settings().cookie_secure,httponly=True,samesite='lax')
     set_csrf(response,csrf_token)
     return {'user':UserOut.model_validate(user).model_dump(),'csrf_token':csrf_token}

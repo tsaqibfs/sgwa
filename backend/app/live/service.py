@@ -8,8 +8,8 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from backend.app.models import User,Agency,Request,AuditLog
-from backend.app.auth.service import decode
+from backend.app.models import User,Agency,Request,AuditLog,Notification
+from backend.app.auth.service import session_actor
 from backend.app.requests.service import scoped_query
 
 
@@ -18,16 +18,15 @@ def scoped_revision(db:Session,actor:User)->str:
     requests=db.execute(select(scoped.c.id,scoped.c.version).order_by(scoped.c.id)).all()
     agencies=db.execute(select(Agency.id,Agency.name,Agency.active,Agency.sla_days).order_by(Agency.id)).all()
     audit=list(db.scalars(select(AuditLog.id).order_by(AuditLog.id))) if actor.role=='admin' else []
-    return hashlib.sha256(json.dumps([list(map(tuple,requests)),list(map(tuple,agencies)),audit],default=str).encode()).hexdigest()
+    notices=db.execute(select(Notification.id,Notification.read_at).where(Notification.user_id==actor.id).order_by(Notification.id)).all()
+    return hashlib.sha256(json.dumps([list(map(tuple,requests)),list(map(tuple,agencies)),audit,list(map(tuple,notices))],default=str).encode()).hexdigest()
 
 
 def session_snapshot(engine,token:str)->tuple[tuple,str]:
-    try:
-        user_id=int(decode(token,'session')['sub'])
-    except (jwt.InvalidTokenError,ValueError,KeyError):raise HTTPException(401,'Sesi berakhir. Silakan masuk kembali.')
     with Session(engine) as db:
-        actor=db.get(User,user_id)
-        if not actor or not actor.active:raise HTTPException(401,'Sesi tidak valid.')
+        try:
+            actor=session_actor(db,token)
+        except (jwt.InvalidTokenError,ValueError,KeyError):raise HTTPException(401,'Sesi berakhir. Silakan masuk kembali.')
         scope=(actor.id,actor.role,actor.agency_id)
         return scope,scoped_revision(db,actor)
 
