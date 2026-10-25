@@ -31,7 +31,7 @@ def report_query(actor:User,filters:ReportFilters):
         query=query.where(select(RequestWorkflow.id).where(RequestWorkflow.request_id==Request.id,RequestWorkflow.agency_id==filters.agency_id).exists())
     return query
 
-def report_rows(db:Session,statement,*,offset:int,limit:int)->list[ReportRow]:
+def report_rows(db:Session,statement,*,offset:int,limit:int,include_classification:bool=False)->list[ReportRow]:
     items=db.scalars(statement.order_by(Request.created_at.desc(),Request.id.desc()).offset(offset).limit(limit)).all()
     if not items:return []
     ids=[row.id for row in items]
@@ -40,7 +40,7 @@ def report_rows(db:Session,statement,*,offset:int,limit:int)->list[ReportRow]:
     tasks={rid:[] for rid in ids}
     for rid,agency in db.execute(select(RequestWorkflow.request_id,Agency).join(Agency,Agency.id==RequestWorkflow.agency_id).where(RequestWorkflow.request_id.in_(ids)).order_by(Agency.name,Agency.id)):
         tasks[rid].append(AgencyRef(id=agency.id,name=agency.name))
-    predictions={row.request_id:ReportClassification(predicted_agency_code=row.predicted_agency_code,confidence=row.confidence,model_version=row.model_version) for row in db.scalars(select(ClassificationResult).where(ClassificationResult.request_id.in_(ids)))}
+    predictions={row.request_id:ReportClassification(predicted_agency_code=row.predicted_agency_code,confidence=row.confidence,model_version=row.model_version) for row in db.scalars(select(ClassificationResult).where(ClassificationResult.request_id.in_(ids)))} if include_classification else {}
     return [ReportRow(id=row.id,reference=row.reference,title=row.title,status=row.status,created_at=iso(row.created_at),updated_at=iso(row.updated_at),primary_agency=primary.get(row.assigned_agency_id),agencies=tasks[row.id],classification=predictions.get(row.id)) for row in items]
 
 def read_report(db:Session,actor:User,query:ReportQuery,generated_at:datetime)->ReportResponse:
@@ -55,4 +55,4 @@ def read_report(db:Session,actor:User,query:ReportQuery,generated_at:datetime)->
     if filters.agency_id:overdue_tasks=overdue_tasks.where(RequestWorkflow.agency_id==filters.agency_id)
     overdue=db.scalar(select(func.count()).select_from(scoped).where(scoped.c.status.not_in(['approved','rejected']),overdue_tasks.exists()))
     summary=ReportSummary(total=total,by_status=by_status,completed_count=completed,completion_rate=completed/total if total else None,overdue_count=overdue or 0,average_completed_hours=float(average) if average is not None else None)
-    return ReportResponse(filters=filters,generated_at=iso(moment),page=query.page,page_size=query.page_size,total=total,summary=summary,items=report_rows(db,statement,offset=(query.page-1)*query.page_size,limit=query.page_size))
+    return ReportResponse(filters=filters,generated_at=iso(moment),page=query.page,page_size=query.page_size,total=total,summary=summary,items=report_rows(db,statement,offset=(query.page-1)*query.page_size,limit=query.page_size,include_classification=actor.role=='admin'))

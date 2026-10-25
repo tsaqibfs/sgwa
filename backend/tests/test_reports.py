@@ -46,6 +46,7 @@ def test_report_scope_filters_and_parallel_no_duplicates(report_case):
     for uid,expected in [(1,{1,2,5}),(2,{3,4}),(3,{1,2}),(4,{1,3,5}),(5,set()),(6,{1,2,3,4,5})]:
         result=read(engine,uid)
         assert {r.id for r in result.items}==expected and result.total==len(expected)
+        if uid!=6:assert all(row.classification is None for row in result.items)
     result=read(engine,6,agency_id=2)
     assert {r.id for r in result.items}=={1,3,5} and result.total==3
     assert read(engine,3).filters.agency_id==1

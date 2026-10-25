@@ -23,7 +23,9 @@ def test_configured_parallel_route_and_invalid_rules(appdb):
     item=client.post('/api/v1/requests',json=payload).json()
     assert len(item['workflows'])==2
     assert {t['agency_id'] for t in item['workflows']}==set(ids)
-    assert item['classification']['predicted_agency_code']=='perizinan'
+    assert item['classification'] is None
+    login(client,'admin@test.id')
+    assert client.get(f"/api/v1/requests/{item['id']}").json()['classification']['predicted_agency_code']=='perizinan'
     assert item['workflows'][0]['due_at']!=item['workflows'][1]['due_at']
     login(client,'admin@test.id');client.patch(f'/api/v1/agencies/{ids[1]}',json={'active':False});login(client)
     blocked=client.post('/api/v1/requests',json=payload).json()

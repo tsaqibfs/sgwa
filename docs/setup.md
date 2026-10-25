@@ -114,7 +114,7 @@ Di terminal lain jalankan `npm.cmd --prefix frontend run e2e`. Helper menolak na
 
 | Gejala | Pemeriksaan |
 | --- | --- |
-| 503 database | Layanan EnvKit/Compose aktif, URL/port benar, user punya akses |
+| 503 database | Periksa layanan EnvKit/Compose, URL/port dan akses user. Pesan ini juga mencakup tabel yang belum dimigrasikan. Jalankan `python -m alembic -c backend/alembic.ini upgrade head`; kode lampiran membutuhkan migrasi `0009` dan tabel `request_attachments`. |
 | 503 model | Pulihkan artefak aktif/rollback; instalasi pertama gunakan bootstrap setelah migrasi dan seed |
 | Login gagal | Email akun demo benar; seed pernah berjalan; password akun lama belum berubah |
 | 403 origin/CSRF | Buka origin yang diizinkan, muat ulang tab, jangan POST langsung tanpa bootstrap CSRF |
@@ -134,7 +134,7 @@ Untuk menghapus fixture Pendidikan yang dibuat tes browser: `python -m scripts.c
 
 ## Pembaruan ML 25 kelas
 
-Migrasi `0008`. Setup pertama: migrasi → seed → bootstrap → backfill. Startup ulang mempertahankan versi aktif. Gunakan [panduan ML](ml.md) untuk koreksi, verifikasi, training kandidat, aktivasi dan rollback. Pengajuan baseline saat ini memerlukan review manual admin; confidence minimal70% saja belum cukup untuk mengaktifkan routing otomatis.
+Migrasi `0008` menyediakan registry ML; migrasi terbaru `0009` menambahkan tabel lampiran. Setup pertama: migrasi → seed → bootstrap → backfill. Startup ulang mempertahankan versi aktif. Gunakan [panduan ML](ml.md) untuk koreksi, verifikasi, training kandidat, aktivasi dan rollback. Pengajuan baseline saat ini memerlukan review manual admin; confidence minimal70% saja belum cukup untuk mengaktifkan routing otomatis.
 
 
 ## Laporan dan CSV — 13 Oktober 2026

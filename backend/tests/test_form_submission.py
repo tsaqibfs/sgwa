@@ -31,9 +31,11 @@ def test_form_mismatch_reviews_and_inactive_form_rejected(appdb):
         def predict(self,text):return Prediction('kesehatan',{'kesehatan':.95},.95,True,'mismatch-test')
     app.state.classifier=Fixed()
     item=c.post('/api/v1/requests',json=body(form)).json()
-    assert item['status']=='escalated' and item['classification']['needs_review']
+    assert item['status']=='escalated' and item['classification'] is None
     assert any('formulir' in e['note'].lower() for e in item['events'])
-    login(c,'admin@forms.id');assert c.patch(f"/api/v1/service-forms/{form['id']}",json={'active':False}).status_code==200
+    login(c,'admin@forms.id')
+    assert c.get(f"/api/v1/requests/{item['id']}").json()['classification']['needs_review']
+    assert c.patch(f"/api/v1/service-forms/{form['id']}",json={'active':False}).status_code==200
     login(c);assert c.post('/api/v1/requests',json=body(form)).status_code==409
 
 

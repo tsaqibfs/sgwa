@@ -75,14 +75,14 @@ def iso(value):
     return value.isoformat()+'Z' if value else None
 
 
-def serialize(session: Session,item: Request,detail=False):
+def serialize(session: Session,item: Request,detail=False,*,actor:User|None=None):
     agency=session.get(Agency,item.assigned_agency_id) if item.assigned_agency_id else None
     data={'id':item.id,'reference':item.reference,'citizen_id':item.citizen_id,'title':item.title,'description':item.description,'assigned_agency_id':item.assigned_agency_id,'agency_name':agency.name if agency else None,'status':item.status,'version':item.version,'created_at':iso(item.created_at),'updated_at':iso(item.updated_at)}
     if detail:
         form=session.get(ServiceFormVersion,item.form_version_id) if item.form_version_id else None
         data['form']=None if form is None else {'id':form.id,'title':form.title,'version':form.version,'schema':form.schema_json,'answers':item.form_answers}
         data['workflows']=[{'id':task.id,'agency_id':task.agency_id,'agency_name':name,'status':task.status,'version':task.version,'due_at':iso(task.due_at),'completed_at':iso(task.completed_at),'decision_note':task.decision_note,'overdue':bool(task.due_at and task.due_at<utcnow() and task.status in ('pending','processing'))} for task,name in session.execute(select(RequestWorkflow,Agency.name).join(Agency,Agency.id==RequestWorkflow.agency_id).where(RequestWorkflow.request_id==item.id).order_by(RequestWorkflow.agency_id))]
-        classification=session.scalar(select(ClassificationResult).where(ClassificationResult.request_id==item.id))
+        classification=session.scalar(select(ClassificationResult).where(ClassificationResult.request_id==item.id)) if actor and actor.role=='admin' else None
         data['classification']=None if not classification else {'predicted_agency_code':classification.predicted_agency_code,'probabilities':classification.probabilities,'confidence':classification.confidence,'needs_review':classification.needs_review,'model_version':classification.model_version}
         events=session.scalars(select(RequestEvent).where(RequestEvent.request_id==item.id).order_by(RequestEvent.id)).all()
         data['events']=[{'id':e.id,'event_type':e.event_type,'from_status':e.from_status,'to_status':e.to_status,'note':e.note,'created_at':iso(e.created_at)} for e in events]

@@ -52,3 +52,17 @@ it('shows empty results and null metrics without hiding export header download',
 it('keeps staff agency fixed and includes inactive agency options for admin',async()=>{
  state.user.role='staff';state.user.agency_id=1;mount();await ready();expect(screen.getByLabelText('Dinas dalam laporan')).toBeDisabled();expect(screen.getByLabelText('Dinas dalam laporan')).toHaveValue('1');cleanup();state.user.role='admin';state.user.agency_id=null;mount();await ready();expect(screen.getByRole('option',{name:'Kesehatan (nonaktif)'})).toBeInTheDocument();
 });
+
+it.each(['citizen','staff','admin'] as const)('limits historical ML report details to admin (%s)',async role=>{
+ state.user.role=role;
+ fetchMock.mockImplementation((path:string)=>Promise.resolve(new Response(JSON.stringify(path.includes('/agencies')?[]:{...body(path),items:body(path).items.map(row=>({...row,classification:{predicted_agency_code:'dukcapil',confidence:0.462,model_version:'ml25-private-version'}}))}))));
+ mount();await ready();
+ if(role==='admin'){
+  expect(screen.getByRole('columnheader',{name:'Prediksi ML historis'})).toBeVisible();
+  expect(screen.getByText('ml25-private-version')).toBeVisible();
+ }else{
+  expect(screen.queryByRole('columnheader',{name:'Prediksi ML historis'})).not.toBeInTheDocument();
+  expect(screen.queryByText('ml25-private-version')).not.toBeInTheDocument();
+  expect(screen.queryByText(/Confidence/)).not.toBeInTheDocument();
+ }
+});

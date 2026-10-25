@@ -60,11 +60,13 @@ def test_new_agency_reroute_keeps_prediction_history(appdb):
     item=client.post('/api/v1/requests',json={'title':'Permintaan tidak dikenal','description':'zzzzz qqqqq xxxxx yyyyy zzzzz qqqqq'}).json()
     assert item['status']=='escalated'
     seed_actor(engine,'admin','admin@example.com');login(client,'admin@example.com')
+    original=client.get(f"/api/v1/requests/{item['id']}").json()['classification']
+    assert item['classification'] is None and original is not None
     agency=client.post('/api/v1/agencies',json={'code':'pendidikan','name':'Dinas Pendidikan'}).json()
     url=f"/api/v1/requests/{item['id']}/reroute"
     routed=client.post(url,json={'version':1,'agency_id':agency['id'],'note':'Berkaitan dengan sekolah'}).json()
     assert routed['status']=='pending'
-    assert routed['classification']==item['classification']
+    assert routed['classification']==original
     assert routed['events'][-1]['event_type']=='rerouted'
     client.patch(f"/api/v1/agencies/{agency['id']}",json={'active':False})
     assert client.get(f"/api/v1/requests/{item['id']}").json()['agency_name']=='Dinas Pendidikan'

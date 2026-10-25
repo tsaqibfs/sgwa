@@ -7,6 +7,9 @@ node_modules/
 dist/
 *.egg-info/
 .superpowers/
+.vscode/
+outputs/
+research/
 ml/artifacts/*.joblib
 ml/artifacts/versions/
 ml/artifacts/archive/

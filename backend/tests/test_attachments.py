@@ -4,8 +4,14 @@ from backend.app.models import Agency
 from backend.tests.conftest import seed_actor, register, login
 
 
-def test_attachment_upload_and_download(appdb):
+def test_attachment_upload_and_download(appdb,monkeypatch,tmp_path):
     c, engine, app = appdb
+    from backend.app.ml.schemas import Prediction
+    from backend.app.config import get_settings
+    monkeypatch.setattr(get_settings(),'upload_dir',tmp_path)
+    class Fixed:
+        def predict(self,text):return Prediction('dukcapil',{'dukcapil':.99},.99,True,'attachment-fixture')
+    app.state.classifier=Fixed()
     with Session(engine) as db:
         agency = Agency(code='dukcapil', name='Dinas Dukcapil')
         db.add(agency)
@@ -95,3 +101,10 @@ def test_attachment_upload_and_download(appdb):
 
     # Confirm it is gone
     assert c.get(f'/api/v1/attachments/{req_att_id}/download').status_code == 404
+    from sqlalchemy import select
+    from backend.app.models import Request,RequestEvent
+    with Session(engine) as db:
+        request=db.get(Request,req_id)
+        events=db.scalars(select(RequestEvent).where(RequestEvent.request_id==req_id,RequestEvent.event_type.in_(['attachment_added','attachment_removed']))).all()
+        assert {event.event_type for event in events}=={'attachment_added','attachment_removed'}
+        assert all(event.from_status==event.to_status==request.status for event in events)

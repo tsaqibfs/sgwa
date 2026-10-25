@@ -96,8 +96,8 @@ def save_upload(
             request_id=request_id,
             actor_id=actor.id,
             event_type='attachment_added',
-            from_status=None,
-            to_status=None,
+            from_status=req.status,
+            to_status=req.status,
             note=f"Berkas pendukung ditambahkan ({attachment.filename}) untuk {agency_name}."
         ))
         record(db, actor.id, 'request.attachment_added', 'request_attachment', attachment.id, {
@@ -216,8 +216,8 @@ def delete_attachment(db: Session, actor: User, attachment_id: int):
             request_id=req_id,
             actor_id=actor.id,
             event_type='attachment_removed',
-            from_status=None,
-            to_status=None,
+            from_status=req.status,
+            to_status=req.status,
             note=f"Berkas pendukung dihapus: {filename}."
         ))
         record(db, actor.id, 'request.attachment_removed', 'request_attachment', attachment_id, {

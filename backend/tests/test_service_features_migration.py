@@ -28,7 +28,7 @@ def test_fresh_and_upgrade_preserve_history_seed_and_backfill(historical):
         run('alembic', '-c', 'backend/alembic.ini', 'upgrade', 'head')
         for _ in range(2): run('backend.app.seed'); run('scripts.backfill_results')
         with engine.connect() as db:
-            assert db.scalar(text('SELECT version_num FROM alembic_version')) == '0008'
+            assert db.scalar(text('SELECT version_num FROM alembic_version')) == '0009'
             assert db.scalar(text('SELECT COUNT(*) FROM agencies WHERE active=1')) == 25
             assert db.scalar(text('SELECT COUNT(*) FROM users')) == 5
             assert db.scalar(text('SELECT COUNT(*) FROM service_forms')) == 0
@@ -42,7 +42,7 @@ def test_fresh_and_upgrade_preserve_history_seed_and_backfill(historical):
                 assert db.scalar(text('SELECT COUNT(*) FROM result_documents')) == 1
                 assert db.scalar(text("SELECT JSON_EXTRACT(snapshot,'$.converted') FROM result_documents")) == 'true'
             else: assert db.scalar(text('SELECT COUNT(*) FROM requests')) == 0
-        assert {'service_forms','service_form_versions','notifications','result_documents','mock_checks'} <= set(inspect(engine).get_table_names())
+        assert {'service_forms','service_form_versions','notifications','result_documents','mock_checks','request_attachments'} <= set(inspect(engine).get_table_names())
     finally:
         Base.metadata.drop_all(engine)
         with engine.begin() as db: db.execute(text('DROP TABLE IF EXISTS alembic_version'))

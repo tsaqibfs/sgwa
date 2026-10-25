@@ -36,7 +36,11 @@ def test_submission_access_and_version_conflict(appdb):
     response=client.post('/api/v1/requests',json={'title':'Pengurusan KTP','description':'Saya ingin mengurus KTP dan kartu keluarga penduduk di Dukcapil.'})
     assert response.status_code==201,response.text
     request=response.json();assert request['status']=='pending'
-    assert request['classification']['confidence']>=.60
+    assert request['classification'] is None
+    from sqlalchemy import select
+    from backend.app.models import ClassificationResult
+    with Session(engine) as db:
+        assert db.scalar(select(ClassificationResult.confidence).where(ClassificationResult.request_id==request['id']))>=.60
     seed_actor(engine,'staff','staff@example.com',agency_id)
     login(client,'staff@example.com')
     url=f"/api/v1/requests/{request['id']}/status"

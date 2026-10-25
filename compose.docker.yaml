@@ -9,8 +9,8 @@ x-app: &app
     DATABASE_URL: mysql+pymysql://sgwa:${MYSQL_PASSWORD:?Isi MYSQL_PASSWORD di .env.docker}@mysql:3306/sgwa_demo
     JWT_SECRET: ${JWT_SECRET:?Isi JWT_SECRET di .env.docker}
     DEMO_PASSWORD: ${DEMO_PASSWORD:?Isi DEMO_PASSWORD di .env.docker}
-    TRUSTED_ORIGINS: '["http://localhost:8080","http://127.0.0.1:8080","http://localhost:8001","http://127.0.0.1:8001"]'
-    COOKIE_SECURE: "false"
+    TRUSTED_ORIGINS: '["http://localhost:8080","http://127.0.0.1:8080","http://localhost:8001","http://127.0.0.1:8001","https://alamat-anda.ngrok-free.app"]'
+    COOKIE_SECURE: "true"
     MODEL_DIR: /app/ml/artifacts
   init: true
 

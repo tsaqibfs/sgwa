@@ -73,3 +73,18 @@ Setelah backend dan frontend diperbarui, buka **Laporan layanan**. Scope mengiku
 Completion rate mencakup approved+rejected; durasi final memakai timestamp tersimpan; overdue hanya tugas dalam cakupan. File UTF-8 BOM, comma/CRLF dengan sanitasi formula dan tanpa kolom identitas/kontak/deskripsi/jawaban/catatan/feedback. Layar dan CSV merupakan snapshot masing-masing request; audit export_prepared hanya menyatakan file siap. Lihat [README](../README.md#laporan-layanan-dan-csv--13-oktober-2026) dan [verifikasi laporan](reports-verification.md).
 
 Demo: buat permohonan pada schema E2E terpisah, admin alihkan ke dinas utama+pendamping, buka laporan warga lalu staf pendamping, terapkan filter dan unduh CSV. Admin melihat ringkasan lebih luas. Kasus lebih dari5.000 harus413; jangan membuat ribuan fixture pada database aplikasi hanya untuk demo. E2E laptop baru memakai .env.e2e dan scripts.prepare_e2e/run_e2e_server seperti panduan setup.
+## Memahami keputusan admin dan dinas penanggung jawab
+
+Pada permohonan yang perlu diperiksa admin, ada dua tindakan berbeda:
+
+- **Alihkan permohonan:** pilih dinas utama, dinas pendamping bila diperlukan, dan catatan. Dinas yang ditetapkan akan tampil pada rincian permohonan warga dan menerima tugas untuk menindaklanjuti.
+- Setelah dinas tujuan dipilih, tombol keputusan akhir langsung dinonaktifkan agar pilihan tersebut tidak terabaikan. Klik **Alihkan permohonan** untuk membuat tugas dinas. Kosongkan pilihan dinas jika ingin kembali ke keputusan akhir langsung.
+- **Disetujui / Konfirmasi:** admin langsung menyelesaikan permohonan. Tindakan ini tidak menetapkan dinas baru. Jika belum pernah ada dinas yang ditetapkan, rincian warga menampilkan **Ditangani langsung oleh admin**, bukan **Menunggu pemeriksaan admin**. Penolakan langsung juga tidak berarti masih menunggu pemeriksaan.
+
+Jangan memilih nama dinas berdasarkan dugaan sistem untuk mengisi riwayat permohonan yang sudah selesai. Gunakan dinas yang benar-benar ditetapkan pada proses pelayanan.
+
+## Tampilan detail berdasarkan peran
+
+Panel klasifikasi ML pada rincian permohonan hanya tampil untuk administrator. Warga dan staf dinas memakai tampilan satu kolom yang berfokus pada kebutuhan, penugasan, status, berkas dan hasil. Respons endpoint detail maupun perubahan permohonan mengembalikan `classification: null` untuk warga dan staf; admin tetap menerima prediksi historis. Pembatasan ini tidak menghapus hasil ML atau mengubah proses penentuan dinas. Laporan/CSV merupakan fitur terpisah dan tidak diubah oleh pembaruan tampilan detail ini.
+
+Riwayat lama yang berbentuk `Dinas #1: processing` ditampilkan memakai nama dinas serta status bahasa Indonesia, misalnya `DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL: Diproses`. Jika nama dinas tidak tersedia, tampil keterangan `Petugas dinas`. Catatan asli di database tidak ditulis ulang; teks bebas petugas dipertahankan.

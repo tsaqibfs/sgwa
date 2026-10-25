@@ -10,7 +10,7 @@ from backend.app.models import Request,RequestWorkflow,Agency,AuditLog,Classific
 
 HEADERS=['nomor_permohonan','judul','status','dinas_utama','dinas_terlibat','diajukan_wib','diperbarui_wib','prediksi_dinas','confidence','versi_model']
 
-def rows(response):
+def rows(response,*,include_classification=True):
     assert response.status_code==200
     assert response.content.startswith(b'\xef\xbb\xbf')
     assert response.headers['content-type'].startswith('text/csv')
@@ -18,14 +18,14 @@ def rows(response):
     assert response.headers['content-disposition'].startswith('attachment; filename="sgwa-laporan-')
     assert response.headers['x-report-generated-at'].endswith('Z')
     result=list(csv.reader(io.StringIO(response.content.decode('utf-8-sig'))))
-    assert result[0]==HEADERS
+    assert result[0]==(HEADERS if include_classification else HEADERS[:7])
     return result[1:]
 
 def test_csv_scope_companion_all_pages_and_empty(report_case):
     client,engine,_=report_case
     assert client.get('/api/v1/reports/requests.csv').status_code==401
     for uid,expected in [(1,{'REPORT-1','REPORT-2','REPORT-5'}),(2,{'REPORT-3','REPORT-4'}),(3,{'REPORT-1','REPORT-2'}),(4,{'REPORT-1','REPORT-3','REPORT-5'}),(5,set()),(6,{f'REPORT-{i}' for i in range(1,6)})]:
-        login(client,f'report{uid}@test.id');assert {r[0] for r in rows(client.get('/api/v1/reports/requests.csv'))}==expected
+        login(client,f'report{uid}@test.id');assert {r[0] for r in rows(client.get('/api/v1/reports/requests.csv'),include_classification=uid==6)}==expected
     assert {r[0] for r in rows(client.get('/api/v1/reports/requests.csv?agency_id=2'))}=={'REPORT-1','REPORT-3','REPORT-5'}
     assert rows(client.get('/api/v1/reports/requests.csv?date_from=2026-11-01'))==[]
     for query in ['page=1','page_size=20','owner=1','status=wrong','agency_id=-1']:
@@ -36,7 +36,7 @@ def test_csv_scope_companion_all_pages_and_empty(report_case):
         db.add_all([Request(reference=f'PAGE-{i}',citizen_id=1,title='Judul page',description='Private text',created_at=datetime(2026,10,13),updated_at=datetime(2026,10,13)) for i in range(21)])
         db.commit()
     login(client,'report1@test.id');assert len(client.get('/api/v1/reports').json()['items'])==20
-    assert len(rows(client.get('/api/v1/reports/requests.csv')))==24
+    assert len(rows(client.get('/api/v1/reports/requests.csv'),include_classification=False))==24
 
 def test_csv_exact_limit_and_overflow_no_truncation(report_case):
     client,engine,_=report_case;login(client,'report6@test.id')

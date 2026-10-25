@@ -10,7 +10,7 @@ Model **25 kelas**, normalisasi singkatan, cross-validation berbasis kelompok, k
 
 Dataset berisi **2.500 contoh sintetis** dengan 25 kode katalog resmi. Holdout menghasilkan macro-F1 **0,546**, di bawah target0,85. Validasi belum memiliki cukup contoh accepted pada confidence minimal70%: **routing otomatis nonaktif**, sehingga pengajuan masuk review admin sambil menampilkan rekomendasi ML. Skor ini belum mengukur akurasi data warga nyata.
 
-Migrasi terbaru `0008` menambahkan feedback, registry dan aktivasi ML. Lihat [Model ML](docs/ml.md), [verifikasi ML](docs/ml-feedback-verification.md), dan [verifikasi fitur layanan](docs/service-features-verification.md). Prediksi lama dan bukti hasil demonstrasi tetap dipertahankan.
+Migrasi terbaru `0009` menambahkan tabel lampiran `request_attachments`; migrasi `0008` menambahkan feedback, registry dan aktivasi ML. Setelah memperbarui kode, jalankan migrasi sebelum memakai aplikasi. Lihat [Model ML](docs/ml.md), [verifikasi ML](docs/ml-feedback-verification.md), dan [verifikasi fitur layanan](docs/service-features-verification.md). Prediksi lama dan bukti hasil demonstrasi tetap dipertahankan.
 
 ## Instalasi dengan Docker (alternatif lengkap)
 

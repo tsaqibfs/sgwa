@@ -46,10 +46,11 @@ def test_rejection_freezes_tasks_and_review_preserves_old_outcomes(appdb):
     assert item['status']=='escalated'
     login(c,'pajak@test.id');assert decision(c,item,item['workflows'][1],'processing').status_code==409
     login(c,'admin@test.id')
+    original=c.get(f"/api/v1/requests/{item['id']}").json()['classification']
     response=c.post(f"/api/v1/requests/{item['id']}/review-route",json={'version':item['version'],'agency_ids':ids,'note':'Mulai review ulang setelah perbaikan'})
     assert response.status_code==200,response.text
     fresh=response.json();assert fresh['status']=='pending' and all(t['status']=='pending' for t in fresh['workflows'])
-    assert fresh['classification']==item['classification']
+    assert item['classification'] is None and fresh['classification']==original
     assert any('Dokumen perlu diperbaiki' in e['note'] for e in fresh['events'])
     with Session(engine) as db:
         rows=db.query(AuditLog).filter_by(action='request.rerouted').all()
