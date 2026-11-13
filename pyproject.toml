@@ -19,3 +19,6 @@ include = ["backend*", "ml*"]
 [tool.pytest.ini_options]
 testpaths = ["backend/tests", "ml/tests"]
 pythonpath = ["."]
+
+[tool.coverage.run]
+omit = ["*/tests/*"]

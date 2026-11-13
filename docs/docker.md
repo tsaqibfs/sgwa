@@ -50,9 +50,49 @@ Named volume `sgwa-demo-docker_mysql_data` dan `sgwa-demo-docker_model_data` ter
 
 Jangan menambahkan `-v` pada `down` kecuali memang ingin **menghapus seluruh database dan model container**. Simpan `.env.docker` selama volume digunakan. Mengubah password MySQL di file environment tidak mengganti password pada database yang sudah diinisialisasi; perubahan akun harus dilakukan di MySQL. Mengubah `DEMO_PASSWORD` juga tidak mengubah password akun yang sudah ada.
 
-Jika port 8080/8001 dipakai aplikasi lain, kosongkan port tersebut atau ubah mapping Compose dan `TRUSTED_ORIGINS` secara konsisten. Jika `init` gagal, baca log dan perbaiki penyebabnya sebelum mengulang `up`. Healthcheck API memeriksa respons HTTP; pemeriksaan alur login/permohonan tetap diperlukan untuk validasi aplikasi.
+Jika port 8080/8001 dipakai aplikasi lain, atur `SGWA_FRONTEND_PORT` dan `SGWA_API_PORT` di `.env.docker` lalu sesuaikan `TRUSTED_ORIGINS` dengan alamat yang dipakai browser. Jika `init` gagal, periksa lognya sebelum mengulang `up`. Healthcheck API memeriksa respons HTTP. CI juga memeriksa login dan akses laporan melalui Nginx.
 
-Paket ini untuk demo lokal: port hanya terikat ke loopback, cookie menggunakan HTTP. Deployment publik membutuhkan HTTPS, pengelolaan secret, akun selain demo, dan pengamanan tambahan sesuai backlog README.
+Port Docker hanya terikat ke loopback. Secara default, cookie memakai atribut `Secure`. Gunakan `http://localhost:8080` untuk demo di browser atau ikuti panduan HTTPS di bawah. Untuk ngrok, masukkan origin HTTPS tunnel secara lengkap dalam array JSON `TRUSTED_ORIGINS` di `.env.docker` bersama origin lokal yang masih dipakai. Gunakan port frontend untuk tunnel.
+
+## HTTPS lokal dan pembatasan akses
+
+Siapkan sertifikat PEM dengan nama `tls.crt` dan kunci privat `tls.key` di folder `tls`. Sertifikat harus mencakup nama host atau alamat IP yang dipakai browser. Untuk folder berbeda, atur `SGWA_TLS_DIR`. Jika OpenSSL tersedia, contoh sertifikat pengembangan:
+
+```powershell
+New-Item -ItemType Directory -Force tls
+openssl req -x509 -newkey rsa:2048 -nodes -days 30 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" -keyout tls/tls.key -out tls/tls.crt
+docker compose --env-file .env.docker -f compose.docker.yaml -f compose.https.yaml up --build -d --wait
+curl.exe --fail --cacert tls/tls.crt https://localhost:8443/api/v1/health
+```
+
+Buka [SGWA HTTPS](https://localhost:8443) dengan sertifikat yang dipercaya browser. Jika Anda mengatur `TRUSTED_ORIGINS` sendiri, sertakan `https://localhost:8443` atau origin HTTPS yang Anda pilih.
+
+Nginx membatasi login dan pendaftaran bersama-sama pada 12 permintaan per menit per IP dengan burst 6. Mutasi API dibatasi 5 per detik per IP dengan burst 20. SSE dibatasi 12 koneksi per IP di Nginx dan 4 koneksi per akun per proses API. Pembatasan mengembalikan HTTP 429. Klien melalui tunnel yang sama dapat berbagi kuota IP. Port Swagger lokal terhubung langsung ke backend dan berada di luar pembatas Nginx.
+
+## Prakiraan, coverage, dan uji beban
+
+Di **Laporan layanan**, admin dapat memilih dinas dan staf dapat melihat dinasnya sendiri. Prakiraan memakai maksimal 120 hari lengkap dalam WIB dan mulai tersedia jika ada setidaknya 60 hari kalender sejak permohonan pertama yang tercatat dalam jendela itu. Dua metode dibandingkan pada dua minggu terakhir secara berurutan. Hari tanpa pengajuan tercatat dihitung nol. Riwayat memakai tanggal pengajuan dan penugasan yang tersimpan saat laporan dibuka. Angka uji historis dipakai untuk memilih metode.
+
+GitHub Actions menjalankan migrasi dan pengujian dengan MySQL 8.4, tes dan build frontend, serta uji singkat Docker melalui HTTPS. Ambang coverage backend dan ML adalah 90%, dengan file pengujian dikecualikan. Unduh artefak **backend-coverage** untuk membuka `html/index.html` atau menggunakan `coverage.xml`.
+
+Uji beban memakai project Compose `sgwa-loadtest` dengan volume sendiri dan port 18080/18001. Skenario k6 menggunakan akun sintetis untuk mengirim permohonan, membuka detail, dan memuat daftar dengan maksimum lima pengguna virtual. Jalankan pengujian dan, di terminal lain saat tes berjalan, ambil sampel CPU/memori dengan `docker stats`:
+
+```powershell
+docker compose --env-file .env.load-test.example -p sgwa-loadtest -f compose.docker.yaml -f compose.load-test.yaml up --build -d --wait
+docker compose --env-file .env.load-test.example -p sgwa-loadtest -f compose.docker.yaml -f compose.load-test.yaml run --rm load-test
+$loadContainers = docker compose --env-file .env.load-test.example -p sgwa-loadtest -f compose.docker.yaml -f compose.load-test.yaml ps -q
+docker stats --no-stream $loadContainers
+```
+
+Catat latensi p95/p99, permintaan per detik, kegagalan, HTTP 429, CPU, dan memori dari run tersebut. Akhiri dengan `docker compose --env-file .env.load-test.example -p sgwa-loadtest -f compose.docker.yaml -f compose.load-test.yaml down`. Tambahkan `-v` hanya jika ingin menghapus data uji beban dan model khusus project tersebut.
+
+Pada uji lokal 13 November 2026, k6 mencapai lima pengguna virtual dengan 112 pengajuan sintetis dan 336 permintaan pada alur utama. Seluruh pemeriksaan berhasil, tanpa kegagalan HTTP atau respons 429 dalam skenario tersebut. Latensi alur utama p95 57,01 ms dan p99 70,10 ms. Laju total 4,41 permintaan/detik termasuk permintaan persiapan. Dari enam sampel `docker stats`, nilai tertinggi backend adalah CPU 34,02% dan memori 136 MiB. Uji memakai MySQL 8.4.11 dan image runtime lokal dengan kode serta konfigurasi terkini dipasang sebagai bind mount. Angka tersebut berlaku untuk skenario dan mesin uji itu.
+
+Uji ulang menggunakan image yang dibangun dari Dockerfile. Semua 336 pemeriksaan kembali berhasil, tanpa kegagalan HTTP atau respons 429. Latensi alur utama p95 64,39 ms dan p99 77,56 ms, dengan laju total 4,41 permintaan/detik. Pengujian terpisah terhadap batas login berhasil memicu HTTP 429. Login HTTPS, cookie `Secure`, SSE, dan akses prakiraan juga diverifikasi pada image hasil build.
+
+Suite pada image backend hasil build dan skema MySQL 8.4.11 terisolasi meluluskan 147 tes dengan coverage 93,77%. Suite frontend meluluskan 49 tes dan build produksi berhasil.
+
+Referensi konfigurasi: [batas laju Nginx](https://nginx.org/en/docs/http/ngx_http_limit_req_module.html), [batas koneksi Nginx](https://nginx.org/en/docs/http/ngx_http_limit_conn_module.html), [penggabungan Compose](https://docs.docker.com/compose/how-tos/multiple-compose-files/merge/) dan [skenario k6](https://grafana.com/docs/k6/latest/using-k6/scenarios/).
 
 Referensi: [urutan startup Docker Compose](https://docs.docker.com/compose/how-tos/startup-order/) dan [buffering proxy Nginx](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffering).
 

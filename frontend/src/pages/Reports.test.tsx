@@ -18,7 +18,16 @@ function body(path:string):ReportResponse{
 let fetchMock:ReturnType<typeof vi.fn>;
 beforeEach(()=>{
  state.user.role='citizen';state.user.agency_id=null;state.file.mockReset();state.save.mockReset();state.file.mockResolvedValue({blob:new Blob(['csv']),filename:'sgwa-laporan.csv',generatedAt:null});
- fetchMock=vi.fn((path:string)=>Promise.resolve(new Response(JSON.stringify(path.includes('/agencies')?[{id:1,name:'Dukcapil',active:true},{id:2,name:'Kesehatan',active:false}]:body(path)))));vi.stubGlobal('fetch',fetchMock);
+ fetchMock=vi.fn((path:string)=>{
+  if(path.includes('/reports/forecast')){
+   const id=Number(new URL(path,'http://localhost').searchParams.get('agency_id'));
+   return Promise.resolve(Response.json({
+    agency:{id,name:id===1?'Dukcapil':'Kesehatan'},
+    history_days:0,minimum_history_days:60,history:[],forecast:[],method:null,evaluation:null,
+   }));
+  }
+  return Promise.resolve(Response.json(path.includes('/agencies')?[{id:1,name:'Dukcapil',active:true},{id:2,name:'Kesehatan',active:false}]:body(path)));
+ });vi.stubGlobal('fetch',fetchMock);
 });
 afterEach(()=>{cleanup();vi.unstubAllGlobals()});
 function mount(){return render(<Theme><MemoryRouter><Reports/></MemoryRouter></Theme>)}
@@ -50,7 +59,16 @@ it('shows empty results and null metrics without hiding export header download',
  mount();await ready();expect(screen.getByText('Tidak ada permohonan sesuai filter.')).toBeVisible();expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(2);
 });
 it('keeps staff agency fixed and includes inactive agency options for admin',async()=>{
- state.user.role='staff';state.user.agency_id=1;mount();await ready();expect(screen.getByLabelText('Dinas dalam laporan')).toBeDisabled();expect(screen.getByLabelText('Dinas dalam laporan')).toHaveValue('1');cleanup();state.user.role='admin';state.user.agency_id=null;mount();await ready();expect(screen.getByRole('option',{name:'Kesehatan (nonaktif)'})).toBeInTheDocument();
+ state.user.role='staff';state.user.agency_id=1;mount();await ready();
+ expect(screen.getByLabelText('Dinas dalam laporan')).toBeDisabled();
+ expect(screen.getByLabelText('Dinas dalam laporan')).toHaveValue('1');
+ expect(await screen.findByText(/Riwayat belum cukup/)).toBeVisible();
+ expect(fetchMock.mock.calls.some(([path])=>path.endsWith('/reports/forecast?agency_id=1'))).toBe(true);
+ cleanup();
+ state.user.role='admin';state.user.agency_id=null;mount();await ready();
+ expect(screen.getByRole('option',{name:'Kesehatan (nonaktif)'})).toBeInTheDocument();
+ await userEvent.setup().selectOptions(screen.getByLabelText('Dinas untuk prakiraan'),'2');
+ expect(await screen.findByText('Kesehatan',{selector:'strong'})).toBeVisible();
 });
 
 it.each(['citizen','staff','admin'] as const)('limits historical ML report details to admin (%s)',async role=>{

@@ -10,6 +10,7 @@ import type {Agency,Status} from '../api/types';
 import {StatusBadge,statusLabel} from '../components/StatusBadge';
 import {PageState} from '../components/PageState';
 import {date} from '../components/RequestTimeline';
+import {AgencyForecast} from '../components/AgencyForecast';
 
 export function Reports(){
  const {user}=useAuth();
@@ -41,5 +42,6 @@ export function Reports(){
  <section className="panel report-table"><div className="section-heading"><h2>Permohonan dalam laporan</h2><Button variant="soft" disabled={busy||result.fetching} onClick={result.reload}>Muat ulang</Button></div>{result.fetching&&<p role="status">Menyegarkan laporan…</p>}<p className="subtle">Disusun {date(data!.generated_at)} · {data!.total} permohonan. CSV dibuat dari snapshot terbaru saat diunduh.</p>
  {data!.items.length===0?<p>Tidak ada permohonan sesuai filter.</p>:<div className="table-scroll"><table><thead><tr><th>Permohonan</th><th>Status</th><th>Dinas utama / terlibat</th><th>Diajukan (WIB)</th>{showClassification&&<th>Prediksi ML historis</th>}</tr></thead><tbody>{data!.items.map(row=><tr key={row.id}><td><Link to={'/app/requests/'+row.id}>{row.reference}</Link><p>{row.title}</p></td><td><StatusBadge status={row.status}/></td><td>{row.primary_agency?.name??'Belum ditugaskan'}<p className="subtle">{row.agencies.map(a=>a.name).join('; ')||'Belum ada tugas dinas'}</p></td><td>{date(row.created_at)}</td>{showClassification&&<td>{row.classification?<><strong>{row.classification.predicted_agency_code}</strong><p>Confidence {(row.classification.confidence*100).toLocaleString('id-ID',{maximumFractionDigits:1})}%</p><small className="model-id">{row.classification.model_version}</small></>:'—'}</td>}</tr>)}</tbody></table></div>}
  <p className="subtle">{showClassification&&'Confidence ML bukan ukuran akurasi atau keputusan layanan. '}Identitas pemohon, deskripsi dan jawaban formulir tidak dimasukkan ke CSV.</p><div className="pagination"><span>Halaman {page} · {data!.total} permohonan</span><Button variant="outline" disabled={page===1||busy||result.fetching} onClick={()=>setPage(n=>n-1)}>Sebelumnya</Button><Button variant="outline" disabled={page*data!.page_size>=data!.total||busy||result.fetching} onClick={()=>setPage(n=>n+1)}>Berikutnya</Button></div></section></>}
+ {(user?.role==='admin'||user?.role==='staff')&&<AgencyForecast agencies={agencies.data??[]} staffAgencyId={user.role==='staff'?user.agency_id??null:undefined}/>}
  </>;
 }

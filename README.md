@@ -6,7 +6,7 @@ Web proyek akhir semester untuk klasifikasi permohonan dengan ML lokal dan workf
 
 Sudah tersedia: registrasi/login; role citizen/staff/admin; pengajuan teks; TF-IDF + Logistic Regression; routing ke beberapa dinas; keputusan per dinas; eskalasi confidence rendah, penolakan dan SLA; review admin; SSE; audit; manajemen dinas/staf; editor routing dan SLA; Swagger/OpenAPI; profil/ganti password dengan pencabutan seluruh sesi; form builder dan jawaban versi historis; notifikasi persisten; bukti hasil dengan snapshot/cetak; mock API sintetis.
 
-Model **25 kelas**, normalisasi singkatan, cross-validation berbasis kelompok, koreksi/verifikasi admin, training kandidat, aktivasi dan rollback sudah tersedia. Laporan layanan dan ekspor CSV sesuai role juga tersedia. Masih backlog: analytics prediktif, coverage, CI, TLS/rate limiting dan load test. Review final dilakukan admin; password Argon2; worker Python/MySQL tanpa Redis/Celery.
+Model **25 kelas** mendukung normalisasi singkatan, cross-validation berbasis kelompok, koreksi admin, pelatihan kandidat, aktivasi dan rollback. Laporan layanan menyediakan ekspor CSV sesuai hak akses dan prakiraan tujuh hari untuk admin serta staf dinas. Review final dilakukan admin. Lihat [panduan Docker dan pengujian](docs/docker.md) untuk HTTPS lokal, pembatasan laju, CI, laporan coverage dan uji beban.
 
 Dataset berisi **2.500 contoh sintetis** dengan 25 kode katalog resmi. Holdout menghasilkan macro-F1 **0,546**, di bawah target0,85. Validasi belum memiliki cukup contoh accepted pada confidence minimal70%: **routing otomatis nonaktif**, sehingga pengajuan masuk review admin sambil menampilkan rekomendasi ML. Skor ini belum mengukur akurasi data warga nyata.
 

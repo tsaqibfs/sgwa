@@ -41,6 +41,29 @@ def read(engine,uid,**values):
     schemas,service=reports()
     with Session(engine) as db:return service.read_report(db,db.get(User,uid),schemas.ReportQuery(**values),NOW)
 
+
+def test_forecast_endpoint_counts_primary_and_supporting_tasks(report_case, monkeypatch):
+    from backend.app.reports import routes
+    from backend.tests.conftest import login
+
+    client, _, _ = report_case
+    monkeypatch.setattr(routes, 'utcnow', lambda: datetime(2026, 10, 14, 0))
+    path = '/api/v1/reports/forecast'
+    assert login(client, 'report4@test.id').status_code == 200
+    response = client.get(path)
+    assert response.status_code == 200
+    assert response.headers['Cache-Control'] == 'no-store'
+    data = response.json()
+    assert data['agency']['id'] == 2
+    assert data['history'] == [{'date': '2026-10-13', 'count': 3}]
+    assert data['status'] == 'insufficient_data'
+    assert client.get(path, params={'agency_id': 1}).status_code == 403
+    assert login(client, 'report1@test.id').status_code == 200
+    assert client.get(path, params={'agency_id': 2}).status_code == 403
+    assert login(client, 'report6@test.id').status_code == 200
+    assert client.get(path).status_code == 422
+    assert client.get(path, params={'agency_id': 999}).status_code == 404
+
 def test_report_scope_filters_and_parallel_no_duplicates(report_case):
     _,engine,_=report_case
     for uid,expected in [(1,{1,2,5}),(2,{3,4}),(3,{1,2}),(4,{1,3,5}),(5,set()),(6,{1,2,3,4,5})]:

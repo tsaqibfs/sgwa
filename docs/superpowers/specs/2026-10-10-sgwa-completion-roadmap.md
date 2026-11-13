@@ -63,3 +63,7 @@ Tahap A tersedia. Bagian ML tahap B tersedia:25 kelas, cross-validation, normali
 ## Status tahap laporan — 13 Oktober 2026
 
 Laporan/CSV tahap B telah diimplementasikan: scope role, filter tanggal WIB/status/dinas termasuk pendamping, summary/page, CSV lengkap sampai5.000, formula safety, audit metadata dan snapshot RR. Tanpa migrasi/model training. Analytics prediktif tahap B dan seluruh tahap C masih backlog. Kualitas ML baseline/normalizer/pointer tidak diubah; lihat docs/reports-verification.md untuk bukti terbaru.
+
+### Status 13 November 2026
+
+Prakiraan per dinas, coverage backend dan ML, CI, opsi HTTPS lokal, pembatasan laju, serta skenario uji beban tersedia. Uji lokal mencatat 147 tes backend dan ML lulus dengan coverage 94%. Uji beban lima pengguna virtual serta verifikasi HTTPS dilakukan pada Docker dengan MySQL 8.4.11. Lihat [panduan dan hasil uji Docker](../../docker.md).

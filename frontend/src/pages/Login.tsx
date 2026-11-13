@@ -1,13 +1,46 @@
 import {useState,type FormEvent} from 'react';
 import {Link,useNavigate,useLocation} from 'react-router-dom';
-import {Button,TextField} from '@radix-ui/themes';
-import {Buildings,ArrowRight,ArrowLeft} from '@phosphor-icons/react';
+import {Button,IconButton,TextField} from '@radix-ui/themes';
+import {Buildings,ArrowRight,ArrowLeft,Eye,EyeSlash} from '@phosphor-icons/react';
 import {api,bootstrapCsrf} from '../api/client';
 import {useAuth} from '../auth/AuthProvider';
 import type {User} from '../api/types';
 export function Login({register=false}:{register?:boolean}){
+ return <AuthForm key={register ? 'register' : 'login'} register={register}/>;
+}
+
+function AuthForm({register}:{register:boolean}){
+ const [showPassword,setShowPassword]=useState(false);
  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[name,setName]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  const {setUser}=useAuth();const navigate=useNavigate(),location=useLocation();
- async function submit(e:FormEvent){e.preventDefault();if(busy)return;setBusy(true);setError('');try{await bootstrapCsrf();if(register)await api('/auth/register',{method:'POST',body:JSON.stringify({name,email,password})});const result=await api<{user:User}>('/auth/login',{method:'POST',body:JSON.stringify({email,password})});setUser(result.user);navigate(location.state?.from||'/app',{replace:true})}catch(exc){setError((exc as Error).message)}finally{setBusy(false)}}
- return <div className="auth-layout"><div className="auth-story"><Link to="/" className="brand"><span className="brand-icon"><Buildings size={26}/></span><span>SGWA<small>LAYANAN PUBLIK</small></span></Link><div><span className="eyebrow">SETIAP KEBUTUHAN PUNYA ARAH</span><h1>Layanan yang<br/>lebih dekat.<br/>Proses yang<br/>lebih jelas.</h1><p>Ajukan, pantau, dan temukan kepastian dalam satu ruang layanan.</p></div><small>Prototipe akademik · Data demonstrasi</small></div><main id="main-content" tabIndex={-1} className="auth-main"><Link to="/" className="back-link"><ArrowLeft/> Kembali ke beranda</Link><form onSubmit={submit} className="auth-form"><span className="eyebrow">SELAMAT DATANG DI SGWA</span><h2>{register?'Buat akun warga':'Masuk ke layanan'}</h2><p>{register?'Mulai pengajuan pertama Anda.':'Lanjutkan permohonan dan pantau perkembangannya.'}</p>{register&&<><label htmlFor="name">Nama lengkap</label><TextField.Root id="name" size="3" required minLength={2} maxLength={150} value={name} onChange={e=>setName(e.target.value)} autoComplete="name"/></>}<label htmlFor="email">Email</label><TextField.Root id="email" size="3" type="email" required value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" placeholder="nama@email.com"/><label htmlFor="password">Password</label><TextField.Root id="password" size="3" type="password" required minLength={10} maxLength={128} value={password} onChange={e=>setPassword(e.target.value)} autoComplete={register?'new-password':'current-password'}/><small>Minimal 10 karakter.</small>{location.state?.notice&&<p role="status">{location.state.notice}</p>}{error&&<p className="error" role="alert">{error}</p>}<Button type="submit" size="3" loading={busy}>{register?'Buat akun & masuk':'Masuk'}<ArrowRight/></Button><p className="auth-switch">{register?'Sudah punya akun?':'Belum punya akun?'} <Link to={register?'/login':'/register'}>{register?'Masuk':'Daftar sebagai warga'}</Link></p></form></main></div>;
+ async function submit(e:FormEvent){e.preventDefault();if(busy)return;setShowPassword(false);setBusy(true);setError('');try{await bootstrapCsrf();if(register)await api('/auth/register',{method:'POST',body:JSON.stringify({name,email,password})});const result=await api<{user:User}>('/auth/login',{method:'POST',body:JSON.stringify({email,password})});setUser(result.user);navigate(location.state?.from||'/app',{replace:true})}catch(exc){setError((exc as Error).message)}finally{setBusy(false)}}
+ return <div className="auth-layout"><div className="auth-story"><Link to="/" className="brand"><span className="brand-icon"><Buildings size={26}/></span><span>SGWA<small>LAYANAN PUBLIK</small></span></Link><div><span className="eyebrow">SETIAP KEBUTUHAN PUNYA ARAH</span><h1>Layanan yang<br/>lebih dekat.<br/>Proses yang<br/>lebih jelas.</h1><p>Ajukan, pantau, dan temukan kepastian dalam satu ruang layanan.</p></div><small>Prototipe akademik · Data demonstrasi</small></div><main id="main-content" tabIndex={-1} className="auth-main"><Link to="/" className="back-link"><ArrowLeft/> Kembali ke beranda</Link><form onSubmit={submit} className="auth-form"><span className="eyebrow">SELAMAT DATANG DI SGWA</span><h2>{register?'Buat akun warga':'Masuk ke layanan'}</h2><p>{register?'Mulai pengajuan pertama Anda.':'Lanjutkan permohonan dan pantau perkembangannya.'}</p>{register&&<><label htmlFor="name">Nama lengkap</label><TextField.Root id="name" size="3" required minLength={2} maxLength={150} value={name} onChange={e=>setName(e.target.value)} autoComplete="name"/></>}<label htmlFor="email">Email</label><TextField.Root id="email" size="3" type="email" required value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" placeholder="nama@email.com"/><label htmlFor="password">Password</label>
+ <TextField.Root
+  id="password"
+  size="3"
+  type={showPassword ? 'text' : 'password'}
+  required
+  minLength={10}
+  maxLength={128}
+  value={password}
+  onChange={e=>setPassword(e.target.value)}
+  autoComplete={register?'new-password':'current-password'}
+  autoCapitalize="none"
+  spellCheck={false}
+ >
+  <TextField.Slot side="right">
+   <IconButton
+    type="button"
+    size="2"
+    variant="ghost"
+    color="gray"
+    aria-controls="password"
+    aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+    onClick={()=>setShowPassword(visible=>!visible)}
+   >
+    {showPassword ? <EyeSlash aria-hidden="true"/> : <Eye aria-hidden="true"/>}
+   </IconButton>
+  </TextField.Slot>
+ </TextField.Root>
+ <small>Minimal 10 karakter.</small>{location.state?.notice&&<p role="status">{location.state.notice}</p>}{error&&<p className="error" role="alert">{error}</p>}<Button type="submit" size="3" loading={busy}>{register?'Buat akun & masuk':'Masuk'}<ArrowRight/></Button><p className="auth-switch">{register?'Sudah punya akun?':'Belum punya akun?'} <Link to={register?'/login':'/register'}>{register?'Masuk':'Daftar sebagai warga'}</Link></p></form></main></div>;
 }

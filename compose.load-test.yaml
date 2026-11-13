@@ -1,0 +1,17 @@
+name: sgwa-loadtest
+
+services:
+  frontend:
+    volumes:
+      - ./scripts/load-test/marker.txt:/usr/share/nginx/html/sgwa-load-test.txt:ro
+  load-test:
+    image: grafana/k6:1.0.0
+    profiles: [load-test]
+    environment:
+      DEMO_PASSWORD: ${DEMO_PASSWORD:?Isi DEMO_PASSWORD pada konfigurasi uji beban}
+    volumes:
+      - ./scripts/load-test/requests.js:/test/requests.js:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+    command: ["run", "/test/requests.js"]

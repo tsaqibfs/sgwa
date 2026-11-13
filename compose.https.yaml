@@ -1,0 +1,10 @@
+services:
+  backend:
+    environment:
+      COOKIE_SECURE: "true"
+  frontend:
+    ports:
+      - "127.0.0.1:8443:443"
+    volumes:
+      - ./frontend/nginx.https.conf:/etc/nginx/conf.d/https.conf:ro
+      - ${SGWA_TLS_DIR:-./tls}:/etc/nginx/tls:ro

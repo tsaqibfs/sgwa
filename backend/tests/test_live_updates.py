@@ -6,6 +6,55 @@ from backend.tests.test_parallel_decisions import prepared
 from backend.tests.conftest import register,login
 from backend.app.auth.service import make_session
 from backend.app.config import get_settings
+from backend.app.live.routes import AccountStream, MAX_STREAMS_PER_ACCOUNT, active_streams
+
+
+def test_stream_limit_is_per_account_and_releases_slots_on_disconnect():
+    async def exercise():
+        ready = asyncio.Event()
+        release = asyncio.Event()
+        started = 0
+
+        async def hold_frame(message):
+            nonlocal started
+            if message['type'] == 'http.response.start':
+                started += 1
+                if started == MAX_STREAMS_PER_ACCOUNT:
+                    ready.set()
+                await release.wait()
+
+        async def frames():
+            yield 'data: {}\n\n'
+
+        async def receive():
+            return {'type': 'http.disconnect'}
+
+        scope = {'type': 'http', 'asgi': {'spec_version': '2.4'}}
+        account_id = 100
+        streams = [
+            asyncio.create_task(AccountStream(account_id, frames())(scope, receive, hold_frame))
+            for _ in range(MAX_STREAMS_PER_ACCOUNT)
+        ]
+        await asyncio.wait_for(ready.wait(), timeout=2)
+        statuses = []
+
+        async def record(message):
+            if message['type'] == 'http.response.start':
+                statuses.append(message['status'])
+
+        try:
+            await AccountStream(account_id, frames())(scope, receive, record)
+            await AccountStream(101, frames())(scope, receive, record)
+            assert statuses == [429, 200]
+        finally:
+            streams[0].cancel()
+            release.set()
+            await asyncio.gather(*streams, return_exceptions=True)
+        assert account_id not in active_streams
+        await AccountStream(account_id, frames())(scope, receive, record)
+        assert statuses[-1] == 200
+
+    asyncio.run(exercise())
 
 
 def test_scoped_revision_and_stream_reassignment(appdb):
