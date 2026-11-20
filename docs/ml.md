@@ -8,7 +8,7 @@ Classifier memilih satu kelas utama dari 25 kode katalog resmi. Workflow dapat m
 
 TF-IDF unigram/bigram sublinear → Logistic Regression (`C=4`, `max_iter=1000`, seed42). Holdout tetap `ml/data/holdout.json`: 500 contoh/50 kelompok. Training dasar: 2.000 contoh/200 kelompok. StratifiedGroupKFold lima fold pada training, TF-IDF di-fit ulang setiap fold. Feedback satu permohonan/hash/family dikelompokkan; konflik label ditolak; overlap holdout dikeluarkan.
 
-Macro-F1 holdout **0,5463865546**, belum mencapai target0,85. Threshold dipilih dari validasi OOF pada0,70–0,95 dengan precision accepted minimal0,90 dan minimal25 contoh accepted. Baseline hanya2 accepted pada0,70, precision1,00, coverage0,10%: **routing otomatis nonaktif**. Pengajuan masuk review admin meskipun rekomendasi ML berconfidence tinggi. Confidence belum dikalibrasi pada populasi warga nyata.
+Macro-F1 holdout **0,5463865546**, belum mencapai target 0,85. Threshold model dipilih dari validasi OOF pada 0,70–0,95 dengan precision accepted minimal 0,90 dan minimal 25 contoh accepted. Baseline hanya memiliki dua contoh accepted pada 0,70, sehingga kebijakan bawaan artefak menonaktifkan perutean otomatis. Docker demo memakai kebijakan tambahan yang dijelaskan di [panduan Docker](docker.md). Skor model belum dikalibrasi pada populasi warga nyata.
 
 Dashboard membaca laporan aktual: skor setiap kelas, confusion matrix, CV mean/std, threshold/coverage dan sumber data. Evaluasi tetap berlabel **holdout sintetis**, juga jika training memakai feedback nyata. Peningkatan skor tidak dijanjikan.
 

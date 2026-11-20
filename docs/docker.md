@@ -25,13 +25,15 @@ Build pertama memerlukan internet dan dapat memakan beberapa menit. Jika `docker
 $env:PATH = 'C:\Program Files\Docker\Docker\resources\bin;' + $env:PATH
 ```
 
-Urutan startup: MySQL sehat → `init` menjalankan Alembic, seed, bootstrap model25, dan backfill bukti historis → API dan worker → frontend. Status `init` **Exited (0)** adalah normal. Tabel dibuat otomatis; tidak perlu mengimpor SQL manual. Seed menyediakan 25 instansi resmi dan lima akun: `warga@demo.sgwa.id`, `admin@demo.sgwa.id`, `dukcapil@demo.sgwa.id`, `perizinan@demo.sgwa.id`, `kesehatan@demo.sgwa.id`. Semua akun baru memakai `DEMO_PASSWORD`.
+Urutan startup: MySQL sehat → `init` menjalankan Alembic, seed, bootstrap model 25 kelas, dan backfill bukti historis → API dan worker → frontend. Status `init` **Exited (0)** adalah normal. Seed membuat satu akun staf per instansi resmi dengan format `<kode_dinas>@demo.sgwa.id`, serta akun `warga@demo.sgwa.id` dan `admin@demo.sgwa.id`. Contoh akun staf adalah `perhubungan@demo.sgwa.id` dan `pu_bina_marga@demo.sgwa.id`. Akun baru memakai `DEMO_PASSWORD`. Daftar kode instansi tersedia di **Dinas & layanan**.
 
 - Frontend: http://localhost:8080
 - Swagger API: http://localhost:8001/docs
 - Health API: http://localhost:8001/api/v1/health
 
-Browser mengakses API melalui `/api/` pada frontend. Nginx mempertahankan cookie, meneruskan SSE tanpa buffering, dan memperbarui alamat backend melalui DNS Docker ketika container dibuat ulang. MySQL tidak membuka port host. Model memiliki25 kelas; baseline sintetis saat ini menonaktifkan routing otomatis dan membutuhkan review admin. Lihat [panduan ML](ml.md).
+Browser mengakses API melalui `/api/` pada frontend. MySQL tidak membuka port host. Untuk menguji unggahan, dari akun warga buka **Permohonan saya → Detail permohonan → Unggah Berkas Baru** pada permohonan yang masih terbuka. PDF dan gambar hingga 10 MB tersimpan di volume `uploads_data`, yang tetap tersedia saat container dibuat ulang.
+
+Mode Docker demo memakai `DEMO_AUTO_ROUTING=true`. Rekomendasi dengan istilah yang dikenali, skor setidaknya 0,35, dan selisih dari kandidat kedua setidaknya 0,10 dapat langsung membuat tugas dinas. Kasus yang meragukan atau tanpa rute aktif masuk pemeriksaan admin. Untuk memakai kebijakan yang tersimpan dalam artefak model, set `DEMO_AUTO_ROUTING=false` di `.env.docker`. Saat ada salah tujuan, buka **Antrean permohonan → Detail → Koreksi dinas tujuan**. Catatan penugasan sebelumnya tetap tercatat dan prediksi awal tetap bisa dilihat admin. [Panduan ML](ml.md)
 
 ## Operasional dan pembaruan
 

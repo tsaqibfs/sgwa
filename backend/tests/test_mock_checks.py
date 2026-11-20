@@ -16,7 +16,10 @@ def test_mock_types_scenarios_scope_and_idempotency(appdb, monkeypatch):
     url = f"/api/v1/requests/{item['id']}/mock-checks"
     assert c.get(url).status_code == 403
     assert c.post(url, json={'check_type': 'identity', 'scenario': 'success', 'idempotency_key': 'citizen-key'}).status_code == 403
-    login(c, 'izin@test.id')
+    assert login(c, 'izin@test.id').status_code == 200
+    assert c.get(url).status_code == 403
+    assert c.post(url, json={'check_type': 'identity', 'scenario': 'success', 'idempotency_key': 'staff-key'}).status_code == 403
+    assert login(c, 'admin@test.id').status_code == 200
     for kind in ['identity', 'permit_completeness', 'general_service']:
         for scenario in ['success', 'mismatch', 'unavailable']:
             payload = {'check_type': kind, 'scenario': scenario, 'idempotency_key': kind+'-'+scenario}
@@ -29,15 +32,13 @@ def test_mock_types_scenarios_scope_and_idempotency(appdb, monkeypatch):
     assert len(c.get(url).json()) == 9
     assert c.get(f"/api/v1/requests/{item['id']}").json()['version'] == 1
     assert c.post(url, json={'check_type': 'unknown', 'scenario': 'success', 'idempotency_key': 'unknown'}).status_code == 422
-    with Session(engine) as db:
-        user = db.scalar(select(User).where(User.email == 'izin@test.id')); user.agency_id = None; db.commit()
-    assert c.get(url).status_code == 404
+    assert c.get('/api/v1/requests/999999/mock-checks').status_code == 404
 
 
 def test_mock_key_cannot_move_between_requests_and_concurrent_retry(appdb):
     c, engine, item, ids = prepared(appdb)
     second = c.post('/api/v1/requests', json={'title': 'Izin lainnya', 'description': 'Saya mengurus perizinan usaha dan pajak atas usaha tersebut.'}).json()
-    login(c, 'izin@test.id')
+    assert login(c, 'admin@test.id').status_code == 200
     payload = {'check_type': 'identity', 'scenario': 'success', 'idempotency_key': 'same-key'}
     first = c.post(f"/api/v1/requests/{item['id']}/mock-checks", json=payload)
     assert first.status_code == 200, first.text
@@ -48,7 +49,7 @@ def test_mock_key_cannot_move_between_requests_and_concurrent_retry(appdb):
     barrier = Barrier(2)
     def run(_):
         with Session(engine) as db:
-            actor = db.scalar(select(User).where(User.email == 'izin@test.id'))
+            actor = db.scalar(select(User).where(User.email == 'admin@test.id'))
             request = db.get(Request, item['id']); barrier.wait(timeout=10)
             check = run_mock_check(db, actor, request, MockRun(**{**payload, 'idempotency_key': 'parallel-key'}))
             db.commit(); return check.id

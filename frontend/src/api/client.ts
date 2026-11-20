@@ -11,7 +11,8 @@ export async function bootstrapCsrf(){
 async function request(path:string,options:RequestInit={}):Promise<Response>{
  const headers=new Headers(options.headers);
  if(options.body && !(options.body instanceof FormData))headers.set('Content-Type','application/json');
- const token=document.cookie.split('; ').find(c=>c.startsWith('sgwa_csrf='))?.split('=').slice(1).join('=');
+ const cookiePrefix='sgwa_csrf=';
+ const token=document.cookie.split('; ').find(cookie=>cookie.startsWith(cookiePrefix))?.slice(cookiePrefix.length);
  if(token)headers.set('X-CSRF-Token',decodeURIComponent(token));
  let response:Response;
  try{response=await fetch('/api/v1'+path,{...options,headers,credentials:'include'})}
@@ -27,13 +28,14 @@ async function request(path:string,options:RequestInit={}):Promise<Response>{
 
 export async function api<T>(path:string,options:RequestInit={}):Promise<T>{
  const response=await request(path,options);
- return await response.json().catch(()=>({})) as T;
+ return response.json().catch(()=>({})) as Promise<T>;
 }
 
 export type DownloadFile={blob:Blob;filename:string;generatedAt:string|null};
 export async function apiFile(path:string):Promise<DownloadFile>{
  const response=await request(path);
- if(response.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='text/csv')throw new ApiError(502,'Layanan mengembalikan format unduhan yang tidak sesuai.');
+ const mediaType=response.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase();
+ if(mediaType!=='text/csv')throw new ApiError(502,'Layanan mengembalikan format unduhan yang tidak sesuai.');
  const disposition=response.headers.get('content-disposition')??'';
  const match=disposition.match(/filename=(?:"([^"]+)"|([^;]+))/i);
  const name=(match?.[1]??match?.[2]??'').trim();

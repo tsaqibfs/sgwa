@@ -11,7 +11,7 @@ COPY scripts/container_init.py ./scripts/container_init.py
 COPY scripts/backfill_results.py ./scripts/backfill_results.py
 COPY scripts/bootstrap_ml.py ./scripts/bootstrap_ml.py
 COPY scripts/train_candidate.py ./scripts/train_candidate.py
-RUN mkdir -p ml/artifacts && chown -R app:app ml/artifacts
+RUN install -d -o app -g app /app/ml/artifacts /app/uploads
 USER app
 EXPOSE 8000
 CMD ["python", "-m", "uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]

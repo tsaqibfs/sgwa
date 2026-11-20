@@ -12,13 +12,13 @@ router = APIRouter(prefix='/requests', tags=['Simulasi API'])
 
 
 @router.get('/{request_id}/mock-checks')
-def history(request_id: int, actor: User = Depends(require_role('staff', 'admin')), db: Session = Depends(get_session)):
+def history(request_id: int, actor: User = Depends(require_role('admin')), db: Session = Depends(get_session)):
     item = get_request(db, actor, request_id)
     return [mock_out(row) for row in db.scalars(select(MockCheck).where(MockCheck.request_id == item.id).order_by(MockCheck.id.desc()))]
 
 
 @router.post('/{request_id}/mock-checks')
-def run(request_id: int, payload: MockRun, actor: User = Depends(require_role('staff', 'admin')), db: Session = Depends(get_session)):
+def run(request_id: int, payload: MockRun, actor: User = Depends(require_role('admin')), db: Session = Depends(get_session)):
     item = get_request(db, actor, request_id)
     check = run_mock_check(db, actor, item, payload); db.commit()
     return mock_out(check)

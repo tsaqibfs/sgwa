@@ -3,22 +3,56 @@ from datetime import timedelta
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.app.models import Request,Agency,ClassificationResult,RequestEvent,User,RequestWorkflow,utcnow
+from backend.app.models import (
+    Agency,
+    ClassificationResult,
+    Request,
+    RequestEvent,
+    RequestWorkflow,
+    ServiceForm,
+    ServiceFormVersion,
+    User,
+    utcnow,
+)
 from backend.app.audit.service import record
 from backend.app.ml.classifier import Classifier,ModelUnavailable
 from backend.app.requests.schemas import RequestCreate
 from backend.app.workflow.routing import resolve_route
-from backend.app.models import ServiceFormVersion,ServiceForm
 from backend.app.forms.service import resolve_submission_form
+from backend.app.config import DEMO_ROUTING_MIN_MARGIN, DEMO_ROUTING_MIN_SCORE, get_settings
+from backend.app.ml.schemas import Prediction
+
+
+def can_route_prediction(prediction: Prediction, demo_auto_routing: bool) -> bool:
+    if not prediction.known_features:
+        return False
+    if prediction.auto_routing_enabled and prediction.confidence >= prediction.threshold:
+        return True
+    if not demo_auto_routing:
+        return False
+    runner_up = max((score for code, score in prediction.probabilities.items()
+                     if code != prediction.agency_code), default=0.0)
+    return (
+        prediction.confidence >= DEMO_ROUTING_MIN_SCORE
+        and prediction.confidence - runner_up >= DEMO_ROUTING_MIN_MARGIN
+    )
 
 
 def scoped_query(actor: User):
-    query=select(Request)
-    if actor.role=='citizen':
-        return query.where(Request.citizen_id==actor.id)
-    if actor.role=='staff':
-        return query.where(select(RequestWorkflow.id).where(RequestWorkflow.request_id==Request.id,RequestWorkflow.agency_id==actor.agency_id).exists()) if actor.agency_id else query.where(False)
-    if actor.role=='admin':
+    query = select(Request)
+    if actor.role == 'citizen':
+        return query.where(Request.citizen_id == actor.id)
+    if actor.role == 'staff' and actor.agency_id:
+        assigned = (
+            select(RequestWorkflow.id)
+            .where(
+                RequestWorkflow.request_id == Request.id,
+                RequestWorkflow.agency_id == actor.agency_id,
+            )
+            .exists()
+        )
+        return query.where(assigned)
+    if actor.role == 'admin':
         return query
     return query.where(False)
 
@@ -43,12 +77,21 @@ def submit_request(session: Session,actor: User,payload: RequestCreate,classifie
     form_version=resolve_submission_form(session,payload.form_version_id,payload.form_answers) if payload.form_version_id is not None else None
     form_agency=session.get(Agency,session.get(ServiceForm,form_version.form_id).agency_id) if form_version else None
     mismatch=bool(form_agency and form_agency.code!=prediction.agency_code)
-    review=not prediction.auto_routing_enabled or prediction.confidence<prediction.threshold or not prediction.known_features or not route
-    review=review or mismatch
-    item=Request(reference='SGWA-'+uuid.uuid4().hex[:16].upper(),citizen_id=actor.id,title=payload.title,description=payload.description,assigned_agency_id=None if review else agency.id,status='escalated' if review else 'pending')
-    session.add(item);session.flush()
+    demo_auto_routing=get_settings().demo_auto_routing
+    review=not route or mismatch or not can_route_prediction(prediction,demo_auto_routing)
+    item = Request(
+        reference='SGWA-' + uuid.uuid4().hex[:16].upper(),
+        citizen_id=actor.id,
+        title=payload.title,
+        description=payload.description,
+        assigned_agency_id=None if review else agency.id,
+        status='escalated' if review else 'pending',
+    )
+    session.add(item)
+    session.flush()
     if form_version:
-        item.form_version_id=form_version.id;item.form_answers=payload.form_answers
+        item.form_version_id = form_version.id
+        item.form_answers = payload.form_answers
     all_att_ids = list(payload.attachment_ids)
     if payload.form_answers:
         for val in payload.form_answers.values():
@@ -64,7 +107,7 @@ def submit_request(session: Session,actor: User,payload: RequestCreate,classifie
         session.add_all([RequestWorkflow(request_id=item.id,agency_id=a.id,due_at=now+timedelta(days=a.sla_days)) for a in route])
     session.add(ClassificationResult(request_id=item.id,predicted_agency_code=prediction.agency_code,probabilities=prediction.probabilities,confidence=prediction.confidence,needs_review=review,model_version=prediction.model_version))
     session.add(RequestEvent(request_id=item.id,actor_id=actor.id,event_type='submitted',from_status=None,to_status=item.status,note='Instansi formulir berbeda dari prediksi ML. Perlu pemeriksaan manual.' if mismatch else 'Perlu pemeriksaan manual.' if review else 'Diteruskan berdasarkan klasifikasi ML.'))
-    record(session,actor.id,'request.submitted','request',item.id,{'status':item.status,'assigned_agency_id':item.assigned_agency_id})
+    record(session,actor.id,'request.submitted','request',item.id,{'status':item.status,'assigned_agency_id':item.assigned_agency_id,'demo_auto_routing':demo_auto_routing})
     from backend.app.notifications.service import notify_request_event
     notify_request_event(session,item,f'request:{item.id}:1:submitted','submitted',[a.id for a in route] if not review else [])
     session.commit()
@@ -87,7 +130,7 @@ def serialize(session: Session,item: Request,detail=False,*,actor:User|None=None
         events=session.scalars(select(RequestEvent).where(RequestEvent.request_id==item.id).order_by(RequestEvent.id)).all()
         data['events']=[{'id':e.id,'event_type':e.event_type,'from_status':e.from_status,'to_status':e.to_status,'note':e.note,'created_at':iso(e.created_at)} for e in events]
         from backend.app.models import RequestAttachment
-        from backend.app.attachments.service import serialize_attachment
+        from backend.app.attachments.service import check_attachment_access,serialize_attachment
         att_rows=session.scalars(select(RequestAttachment).where(RequestAttachment.request_id==item.id).order_by(RequestAttachment.id.asc())).all()
-        data['attachments']=[serialize_attachment(a,session.get(Agency,a.agency_id) if a.agency_id else None,session.get(User,a.uploaded_by)) for a in att_rows]
+        data['attachments']=[serialize_attachment(a,session.get(Agency,a.agency_id) if a.agency_id else None,session.get(User,a.uploaded_by)) for a in att_rows if actor and check_attachment_access(session,actor,a)]
     return data

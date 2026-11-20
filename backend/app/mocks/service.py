@@ -16,7 +16,7 @@ def run_mock_check(db, actor, item, payload):
     # Actor mutex serializes retries, including reuse against different requests.
     actor = db.scalar(select(User).where(User.id == actor.id).with_for_update().execution_options(populate_existing=True))
     if not actor.active: raise HTTPException(401, 'Sesi berakhir.')
-    if actor.role not in ('staff', 'admin'): raise HTTPException(403, 'Pemeriksaan hanya untuk petugas.')
+    if actor.role != 'admin': raise HTTPException(403, 'Simulasi pemeriksaan hanya untuk admin.')
     item = db.scalar(scoped_query(actor).where(Request.id == item.id).with_for_update().execution_options(populate_existing=True))
     if not item: raise HTTPException(404, 'Permohonan tidak ditemukan.')
     existing = db.scalar(select(MockCheck).where(MockCheck.actor_id == actor.id, MockCheck.idempotency_key == payload.idempotency_key).with_for_update())

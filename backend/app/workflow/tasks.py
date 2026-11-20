@@ -54,7 +54,8 @@ def decide_task(db:Session,actor:User,request_id:int,task_id:int,request_version
 def review_route(db:Session,actor:User,request_id:int,version:int,agency_ids:list[int],note:str)->Request:
     if actor.role!='admin':raise HTTPException(403,'Hanya admin dapat mengalihkan permohonan.')
     item=lock_request(db,actor,request_id,version)
-    if item.status!='escalated':raise HTTPException(409,'Hanya kasus eskalasi terbaru dapat dialihkan.')
+    if item.status not in ('pending','processing','escalated'):
+        raise HTTPException(409,'Permohonan yang sudah selesai tidak dapat dialihkan.')
     if not note.strip() or not agency_ids or len(agency_ids)!=len(set(agency_ids)) or len(agency_ids)>20:raise HTTPException(422,'Pilih dinas unik dan isi alasan pengalihan.')
     agencies=locked_agencies(db)
     if any(i not in agencies or not agencies[i].active for i in agency_ids):raise HTTPException(422,'Pilih dinas aktif.')

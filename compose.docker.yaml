@@ -12,6 +12,7 @@ x-app: &app
     TRUSTED_ORIGINS: '${TRUSTED_ORIGINS:-["http://localhost:8080","http://127.0.0.1:8080","http://localhost:8001","http://127.0.0.1:8001","https://localhost:8443","https://127.0.0.1:8443"]}'
     COOKIE_SECURE: "${COOKIE_SECURE:-true}"
     MODEL_DIR: /app/ml/artifacts
+    DEMO_AUTO_ROUTING: "${DEMO_AUTO_ROUTING:-true}"
   init: true
 
 services:
@@ -48,6 +49,7 @@ services:
       - "127.0.0.1:${SGWA_API_PORT:-8001}:8000"
     volumes:
       - model_data:/app/ml/artifacts:ro
+      - uploads_data:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -92,3 +94,4 @@ services:
 volumes:
   mysql_data:
   model_data:
+  uploads_data:

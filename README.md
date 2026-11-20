@@ -8,7 +8,7 @@ Sudah tersedia: registrasi/login; role citizen/staff/admin; pengajuan teks; TF-I
 
 Model **25 kelas** mendukung normalisasi singkatan, cross-validation berbasis kelompok, koreksi admin, pelatihan kandidat, aktivasi dan rollback. Laporan layanan menyediakan ekspor CSV sesuai hak akses dan prakiraan tujuh hari untuk admin serta staf dinas. Review final dilakukan admin. Lihat [panduan Docker dan pengujian](docs/docker.md) untuk HTTPS lokal, pembatasan laju, CI, laporan coverage dan uji beban.
 
-Dataset berisi **2.500 contoh sintetis** dengan 25 kode katalog resmi. Holdout menghasilkan macro-F1 **0,546**, di bawah target0,85. Validasi belum memiliki cukup contoh accepted pada confidence minimal70%: **routing otomatis nonaktif**, sehingga pengajuan masuk review admin sambil menampilkan rekomendasi ML. Skor ini belum mengukur akurasi data warga nyata.
+Dataset berisi **2.500 contoh sintetis** dengan 25 kode katalog resmi. Uji holdout sintetis menghasilkan macro-F1 **0,546** dan kebijakan model awal masih menonaktifkan perutean otomatis. Paket Docker demo mengaktifkan penugasan otomatis untuk rekomendasi dengan skor minimal 0,35 dan selisih minimal 0,10 dari rekomendasi kedua. Kasus meragukan masuk pemeriksaan admin. Admin dapat mengoreksi tujuan permohonan yang masih berjalan. Skor tersebut belum divalidasi dengan data warga nyata.
 
 Migrasi terbaru `0009` menambahkan tabel lampiran `request_attachments`; migrasi `0008` menambahkan feedback, registry dan aktivasi ML. Setelah memperbarui kode, jalankan migrasi sebelum memakai aplikasi. Lihat [Model ML](docs/ml.md), [verifikasi ML](docs/ml-feedback-verification.md), dan [verifikasi fitur layanan](docs/service-features-verification.md). Prediksi lama dan bukti hasil demonstrasi tetap dipertahankan.
 
@@ -120,7 +120,7 @@ Password akun awal mengikuti `DEMO_PASSWORD` pada seed pertama:
 | Staf Perizinan / DPMPTSP | perizinan@demo.sgwa.id |
 | Staf Kesehatan | kesehatan@demo.sgwa.id |
 
-Login admin dan periksa Dinas & layanan berisi 25 instansi. Staf untuk 22 instansi lain dibuat melalui Manajemen staf. Login warga, ajukan pengurusan KTP; admin meninjau dan mengalihkan ke Dukcapil sebelum staf memproses. Demo paralel: admin memilih Perizinan dan Kesehatan sebagai pendamping saat review. Kedua staf harus menyetujui agar status agregat Disetujui. Ini simulasi koordinasi akademik. [Panduan demo](docs/demo.md).
+Seed membuat akun staf untuk seluruh 25 instansi dengan format `<kode_dinas>@demo.sgwa.id`. Daftar akun dan instansi terkait bisa dilihat di **Manajemen staf**. Untuk memakai mode perutean otomatis demo saat menjalankan backend secara lokal, tambahkan `DEMO_AUTO_ROUTING=true` ke `.env` dan jalankan ulang backend. [Panduan demo](docs/demo.md)
 
 ## Upgrade katalog pada database lama
 

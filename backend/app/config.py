@@ -3,6 +3,9 @@ from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+DEMO_ROUTING_MIN_SCORE = .35
+DEMO_ROUTING_MIN_MARGIN = .10
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
@@ -13,6 +16,7 @@ class Settings(BaseSettings):
     model_dir: Path = Path('ml/artifacts')
     upload_dir: Path = Path('uploads')
     demo_password: str = Field(default='', repr=False)
+    demo_auto_routing: bool = False
 
 
 @lru_cache

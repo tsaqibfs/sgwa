@@ -85,6 +85,8 @@ it.each(['citizen','staff'] as const)('menyembunyikan panel ML dan menggunakan s
  expect(document.querySelector('.classification-panel')).toBeNull();
  expect(document.querySelector('.detail-layout')).toHaveClass('detail-layout--single');
  expect(screen.queryByText('visibility-fixture',{exact:false})).not.toBeInTheDocument();
+ expect(screen.queryByRole('heading',{name:'Simulasi pemeriksaan'})).not.toBeInTheDocument();
+ expect(vi.mocked(fetch).mock.calls.some(([url])=>String(url).endsWith('/mock-checks'))).toBe(false);
 });
 it('tetap menampilkan panel dan rincian prediksi kepada admin',async()=>{
  auth.user.role='admin';
@@ -93,6 +95,7 @@ it('tetap menampilkan panel dan rincian prediksi kepada admin',async()=>{
  expect(screen.getByText('KLASIFIKASI ML')).toBeVisible();
  expect(screen.getByRole('heading',{name:'dukcapil'})).toBeVisible();
  expect(screen.getByText('Model: visibility-fixture')).toBeVisible();
+ expect(screen.getByRole('heading',{name:'Simulasi pemeriksaan'})).toBeVisible();
  expect(document.querySelector('.detail-layout')).not.toHaveClass('detail-layout--single');
 });
 

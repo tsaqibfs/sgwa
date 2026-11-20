@@ -1,4 +1,5 @@
 import os
+import logging
 import re
 import uuid
 from pathlib import Path
@@ -11,6 +12,7 @@ from backend.app.audit.service import record
 
 ALLOWED_EXTENSIONS = {'.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+logger = logging.getLogger(__name__)
 
 
 def sanitize_filename(filename: str) -> str:
@@ -40,7 +42,7 @@ def save_upload(
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(422, f'Format file tidak didukung. Gunakan format: {", ".join(sorted(ALLOWED_EXTENSIONS))}')
 
-    content = file.file.read()
+    content = file.file.read(MAX_FILE_SIZE + 1)
     size = len(content)
     if size == 0:
         raise HTTPException(422, 'File tidak boleh kosong.')
@@ -53,7 +55,7 @@ def save_upload(
             raise HTTPException(422, 'Dinas tidak valid atau tidak aktif.')
 
     if request_id:
-        req = db.get(Request, request_id)
+        req = db.get(Request, request_id, with_for_update=True)
         if not req:
             raise HTTPException(404, 'Permohonan tidak ditemukan.')
         if actor.role == 'citizen' and req.citizen_id != actor.id:
@@ -71,10 +73,11 @@ def save_upload(
                 raise HTTPException(403, 'Staf hanya dapat mengunggah berkas untuk dinasnya sendiri.')
             if not agency_id:
                 agency_id = actor.agency_id
+        if req.status in ('approved', 'rejected'):
+            raise HTTPException(409, 'Permohonan sudah selesai. Berkas baru tidak dapat ditambahkan.')
 
     stored_name = f"{uuid.uuid4().hex}{ext}"
-    upload_path = get_upload_dir() / stored_name
-    upload_path.write_bytes(content)
+    upload_path = get_settings().upload_dir / stored_name
 
     attachment = RequestAttachment(
         request_id=request_id,
@@ -106,7 +109,19 @@ def save_upload(
             'filename': attachment.filename
         })
 
-    db.commit()
+    try:
+        get_upload_dir()
+        upload_path.write_bytes(content)
+        db.commit()
+    except Exception as exc:
+        try:
+            upload_path.unlink(missing_ok=True)
+        except OSError:
+            logger.warning('Failed to clean up unfinished attachment upload', exc_info=True)
+        if isinstance(exc, OSError):
+            logger.exception('Attachment storage is unavailable')
+            raise HTTPException(503, 'Penyimpanan berkas belum tersedia. Silakan coba kembali.') from exc
+        raise
     db.refresh(attachment)
     return attachment
 
@@ -114,19 +129,14 @@ def save_upload(
 def check_attachment_access(db: Session, actor: User, attachment: RequestAttachment) -> bool:
     if actor.role == 'admin':
         return True
-    if attachment.uploaded_by == actor.id:
-        return True
     if not attachment.request_id:
-        return False
+        return attachment.uploaded_by == actor.id
     req = db.get(Request, attachment.request_id)
     if not req:
         return False
     if actor.role == 'citizen':
         return req.citizen_id == actor.id
-    if actor.role == 'staff':
-        # staff can see attachments for their agency or assigned workflow
-        if attachment.agency_id == actor.agency_id:
-            return True
+    if actor.role == 'staff' and actor.agency_id and attachment.agency_id in (None, actor.agency_id):
         is_assigned = db.scalar(
             select(RequestWorkflow.id).where(
                 RequestWorkflow.request_id == req.id,
@@ -191,7 +201,7 @@ def delete_attachment(db: Session, actor: User, attachment_id: int):
     item = db.get(RequestAttachment, attachment_id)
     if not item:
         raise HTTPException(404, 'Berkas tidak ditemukan.')
-    if actor.role != 'admin' and item.uploaded_by != actor.id:
+    if actor.role != 'admin' and (item.uploaded_by != actor.id or not check_attachment_access(db, actor, item)):
         raise HTTPException(403, 'Hanya pengunggah atau admin yang dapat menghapus berkas.')
 
     if item.request_id:

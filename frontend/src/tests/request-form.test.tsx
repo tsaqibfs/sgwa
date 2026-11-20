@@ -10,6 +10,9 @@ describe('Pengajuan permohonan',()=>{
   fireEvent.change(screen.getByLabelText('Judul permohonan'),{target:{value:'KTP'}});
   fireEvent.click(screen.getByRole('button',{name:'Kirim permohonan'}));
   expect(submit).not.toHaveBeenCalled();
+  expect(screen.getByRole('alert')).toHaveFocus();
+  fireEvent.click(screen.getByRole('link',{name:'Masukkan judul dengan 5–150 karakter.'}));
+  expect(screen.getByLabelText('Judul permohonan')).toHaveFocus();
   fireEvent.change(screen.getByLabelText('Judul permohonan'),{target:{value:'Pengurusan KTP'}});
   fireEvent.change(screen.getByLabelText('Ceritakan kebutuhan Anda'),{target:{value:'Saya ingin mengurus KTP yang hilang dan kartu keluarga.'}});
   fireEvent.click(screen.getByRole('button',{name:'Kirim permohonan'}));

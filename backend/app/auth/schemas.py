@@ -8,8 +8,8 @@ class Credentials(BaseModel):
 
     @field_validator('email')
     @classmethod
-    def normalize_email(cls,value):
-        return str(value).lower()
+    def normalize_email(cls, value: str) -> str:
+        return value.lower()
 
 
 class Register(Credentials):

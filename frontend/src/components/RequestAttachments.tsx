@@ -179,7 +179,7 @@ export function RequestAttachments({
       )}
 
       <Dialog.Root open={openUpload} onOpenChange={open => !busy && setOpenUpload(open)}>
-        <Dialog.Content maxWidth="480px">
+        <Dialog.Content maxWidth="480px" className="attachment-upload-dialog">
           <Dialog.Title>Unggah Berkas Pendukung</Dialog.Title>
           <Dialog.Description>
             Pilih berkas dokumen (PDF, Gambar JPG/PNG, atau Dokumen Word maks. 10 MB).
@@ -230,7 +230,7 @@ export function RequestAttachments({
                 onChange={e => setFile(e.target.files?.[0] || null)}
               />
               <span className="field-hint">
-                Format yang didukung: .pdf, .jpg, .jpeg, .png, .doc, .docx
+                PDF, JPG, PNG, DOC, atau DOCX. Maksimal 10 MB per berkas.
               </span>
             </div>
 

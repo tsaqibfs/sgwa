@@ -2,15 +2,15 @@
 
 ## Persiapan
 
-Pastikan database, backend (8000), frontend (5173), migrasi, artefak model, dan akun seed tersedia. Siapkan tiga sesi/akun: warga, petugas Dukcapil, admin. Password awal berasal dari DEMO_PASSWORD lokal.
+Jalankan [Docker demo](docker.md), lalu buka `http://127.0.0.1:8080`. Siapkan tiga akun, yaitu warga, petugas Dukcapil, dan admin. Password awal berasal dari `DEMO_PASSWORD` saat masing-masing akun dibuat.
 
 ## Alur utama (sekitar 5 menit)
 
 1. Buka beranda; jelaskan tujuan layanan publik dan bahwa ini prototipe akademik.
 2. Login warga `warga@demo.sgwa.id`; buat permohonan:
-   - Judul: Penggantian KTP yang hilang.
-   - Deskripsi: Saya ingin mengurus KTP elektronik yang hilang dan kartu keluarga penduduk di Dukcapil. Mohon informasi dokumen yang perlu disiapkan.
-3. Tunjukkan hasil klasifikasi, skor tiap dinas, versi model, dan status perlu review. Admin harus mengalihkan ke Dukcapil dengan catatan sebelum staf memproses.
+   - Judul: Permohonan penggantian KTP yang hilang.
+   - Deskripsi: KTP saya hilang dan saya ingin mengurus penggantiannya. Saya membutuhkan informasi mengenai persyaratan berkas, langkah pengajuan, serta tempat pelayanan yang harus saya datangi. Mohon permohonan ini diteruskan kepada dinas yang menangani administrasi kependudukan.
+3. Tunjukkan status **Menunggu** dan **Dinas utama** sudah terisi Dukcapil. Klik **Unggah Berkas Baru**, pilih PDF atau gambar contoh, lalu tunjukkan nama berkas dan coba unduh kembali. Admin dapat membuka detail yang sama untuk melihat prediksi atau mengoreksi tujuan.
 4. Keluar, masuk `dukcapil@demo.sgwa.id`; buka permohonan dan klik Mulai proses.
 5. Isi catatan dokumen lengkap; setujui melalui konfirmasi keputusan.
 6. Login warga lagi; lihat hasil disetujui dan timeline keputusan.
@@ -26,7 +26,7 @@ Pastikan database, backend (8000), frontend (5173), migrasi, artefak model, dan 
 
 ## Penjelasan AI/ML (sekitar 2 menit)
 
-Buka Evaluasi model. Jelaskan representasi TF-IDF, classifier Logistic Regression, split kelompok skenario, macro-F1, dan confusion matrix. Model25: macro-F1 holdout sintetis0,546; CV berbasis kelompok tersedia. Routing otomatis nonaktif karena validasi belum cukup; data nyata belum dibuktikan.
+Buka **Evaluasi model**. Jelaskan representasi TF-IDF, classifier Logistic Regression, pembagian menurut kelompok skenario, macro-F1, dan confusion matrix. Macro-F1 pada holdout sintetis adalah 0,546. Docker menggunakan ambang khusus demo untuk memberi tugas otomatis pada rekomendasi yang cukup kuat, sementara kasus meragukan masuk pemeriksaan admin.
 
 ## Pertanyaan yang mungkin muncul
 
@@ -35,7 +35,7 @@ Buka Evaluasi model. Jelaskan representasi TF-IDF, classifier Logistic Regressio
 - **Apakah AI memutuskan layanan?** Tidak. Staf/admin membuat keputusan final.
 - **Bisa menambah dinas?** Bisa, melalui admin; kelas otomatis memerlukan training ulang.
 - **Apa database-nya?** Oracle MySQL Community Server 9.7.2 di EnvKit, sudah diverifikasi langsung. Compose MySQL 8.4 juga tersedia.
-- **Apa yang belum dibangun?** Laporan/CSV, analytics prediktif, coverage, CI, TLS/rate limiting, load test dan integrasi pemerintah nyata masih backlog.
+- **Apa yang masih perlu divalidasi?** Ketepatan pada laporan warga nyata, kapasitas di luar skenario uji lokal, dan integrasi dengan layanan pemerintah.
 
 ## Demo tahap pertama: dua dinas, live, dan audit
 
@@ -55,7 +55,7 @@ Untuk menunjukkan SLA tanpa menunggu beberapa hari, gunakan pengujian `backend/t
 2. Admin membuka Formulir layanan, pilih instansi aktif, susun field, simpan draft lalu publikasikan. Warga dapat memilih layanan pada Pengajuan baru atau tetap mengirim judul/deskripsi tanpa formulir. Jika arah formulir berbeda dari kelas ML, permohonan masuk review admin.
 3. Terbitkan versi berikutnya; detail permohonan sebelumnya tetap menampilkan label dan jawaban versi lama. Konflik publikasi meminta warga meninjau ulang jawaban sebelum mengirim kembali.
 4. Buka Notifikasi: pengajuan, progres, pengalihan/eskalasi dan keputusan tersimpan. Tandai satu/semua dibaca, logout/login dan tunjukkan bahwa riwayat tetap ada.
-5. Staf/admin membuka Simulasi pemeriksaan pada detail. Pilih identitas/kelengkapan izin/layanan umum dan skenario cocok/tidak cocok/tidak tersedia. Hasil memakai fixture sintetis dan tidak menyetujui layanan otomatis.
+5. Admin membuka **Simulasi pemeriksaan** pada detail permohonan. Pilih identitas, kelengkapan izin, atau layanan umum dengan skenario cocok, tidak cocok, atau tidak tersedia. Simulasi memakai data contoh dan mencatat hasil di riwayat simulasi. Keputusan layanan tetap melalui alur permohonan.
 6. Setelah keputusan final, buka Lihat bukti hasil. Nomor, pemohon, waktu/catatan serta keputusan instansi merupakan snapshot. Gunakan Cetak / simpan PDF melalui browser; label demonstrasi akademik tetap tercetak. Bukti historis yang dikonversi menjelaskan informasi yang tidak tercatat.
 
 Tidak ada riwayat/formulir contoh yang otomatis dimasukkan seed. Buat contoh secara sadar untuk demo; jangan memakai data pribadi asli.
@@ -63,7 +63,7 @@ Tidak ada riwayat/formulir contoh yang otomatis dimasukkan seed. Buat contoh sec
 
 ## Pembaruan ML 25 kelas
 
-Migrasi `0008`. Setup pertama: migrasi → seed → bootstrap → backfill. Startup ulang mempertahankan versi aktif. Gunakan [panduan ML](ml.md) untuk koreksi, verifikasi, training kandidat, aktivasi dan rollback. Pengajuan baseline saat ini memerlukan review manual admin; confidence minimal70% saja belum cukup untuk mengaktifkan routing otomatis.
+Setup pertama menjalankan migrasi, seed, bootstrap, dan backfill. Startup ulang mempertahankan versi aktif. Gunakan [panduan ML](ml.md) untuk koreksi, verifikasi, training kandidat, aktivasi dan rollback.
 
 
 ## Laporan dan CSV — 13 Oktober 2026

@@ -4,6 +4,7 @@ from typing import Literal
 from sqlalchemy.orm import Session
 from backend.app.models import User,Agency
 from backend.app.db import get_session
+from backend.app.config import DEMO_ROUTING_MIN_MARGIN, DEMO_ROUTING_MIN_SCORE, get_settings
 from backend.app.auth.dependencies import require_role
 from backend.app.models import MLFeedback
 from backend.app.ml.schemas import FeedbackCreate,FeedbackReview,ModelActivation
@@ -33,7 +34,15 @@ def model(request: Request):
 def metadata(request: Request,actor: User=Depends(require_role('admin')),db: Session=Depends(get_session),classifier=Depends(get_classifier)):
     info=classifier.metadata()
     agencies=db.scalars(select(Agency).where(Agency.active.is_(True))).all()
-    return {**info,'unsupported_agencies':[a.code for a in agencies if a.code not in info['classes']]}
+    return {
+        **info,
+        'unsupported_agencies': [a.code for a in agencies if a.code not in info['classes']],
+        'demo_routing': {
+            'enabled': get_settings().demo_auto_routing,
+            'minimum_score': DEMO_ROUTING_MIN_SCORE,
+            'minimum_margin': DEMO_ROUTING_MIN_MARGIN,
+        },
+    }
 
 
 @router.get('/evaluation')
